@@ -1,4 +1,4 @@
-const createComment = async (req, res) => {
+exports.createComment = async (req, res) => {
   const { post_id } = req.params;
   const { content, hashtags } = req.body;
 
@@ -28,7 +28,7 @@ const createComment = async (req, res) => {
   }
 };
 
-const getComment = async (req, res) => {
+exports.getComment = async (req, res) => {
   const { comment_id } = req.params;
 
   try {
@@ -45,7 +45,7 @@ const getComment = async (req, res) => {
   }
 }
 
-const getAllComments = async (req, res) => {
+exports.getAllComments = async (req, res) => {
   try {
     const comments = await db.send_sql(
       `SELECT * FROM comments`

@@ -1,4 +1,4 @@
-const createPost = async (req, res) => {
+exports.createPost = async (req, res) => {
   const {image, content, hashtag} = req.body;
 
   // Cannot all be null
@@ -17,7 +17,7 @@ const createPost = async (req, res) => {
   }
 }
 
-const getPost = async (req, res) => {
+exports.getPost = async (req, res) => {
   const {post_id} = req.params;
 
   try {

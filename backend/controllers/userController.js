@@ -4,7 +4,7 @@ const dbsingleton = require('../access/db_access.js');
 
 const db = dbsingleton;
 
-const register = async function (req, res) {
+exports.register = async function (req, res) {
   const {
     username,
     password,
@@ -62,7 +62,7 @@ const register = async function (req, res) {
   }
 };
 
-const login = async (req, res) => {
+exports.login = async (req, res) => {
   const username = req.body.username;
   const password = req.body.password;
   if (username == null || password == null) {
@@ -108,17 +108,9 @@ const login = async (req, res) => {
   }
 };
 
-var logout = (req, res) => {
+exports.logout = (req, res) => {
   // TODO: fill in log out logic to disable session info
   req.session.user_id = null;
   req.session.username = null;
   return res.status(200).json({ message: 'You were successfully logged out.' });
 };
-
-var routes = {
-  register: register,
-  login: login,
-  logout: logout,
-};
-
-module.exports = routes;

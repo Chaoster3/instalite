@@ -1,14 +1,12 @@
 const express = require('express');
-const register = require('./register_routes');
+const userRouter = require('./routes/user_routes');
 const cors = require('cors');
 const app = express();
 
 app.use(express.json());
 app.use(cors());
 
-register.register_routes(app);
+// register.register_routes(app);
+app.use('/users', userRouter);
 
-const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+module.exports = app;

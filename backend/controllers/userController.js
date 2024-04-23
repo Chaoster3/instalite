@@ -82,7 +82,7 @@ exports.login = async (req, res) => {
       matches = await new Promise((resolve, reject) => {
         bcrypt.compare(
           password,
-          correct[0]['hashed_password'],
+          correct[0]['password'],
           (err, result) => {
             if (err) {
               reject(err);

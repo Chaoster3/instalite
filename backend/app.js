@@ -8,7 +8,7 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// register.register_routes(app);
+
 app.use('/users', userRouter);
 app.use('/posts', postsRouter);
 app.use('/comments', commentsRouter);

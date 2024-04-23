@@ -5,12 +5,9 @@ const router = express.Router();
 router.route('/login').post(userController.login);
 router.route('/register').post(userController.register);
 router.route('/logout').get(userController.logout);
-
-// function register_routes(app) {
-//   // app.post('/image_match', userController.image_match);
-//   app.post('/login', userController.login);
-//   app.post('/register', userController.register);
-//   app.get('/logout', userController.logout);
-// }
+router.route('/changePassowrd').put(userController.changePassword);
+router.route('/changeEmail').put(userController.changeEmail);
+router.route('/getFiveClosestActors').get(userController.getFiveClosestActors);
+router.route('/changeActor').put(userController.changeActor);
 
 module.exports = router;

@@ -1,11 +1,14 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import axios from "axios";
 
 function Landing({ onSignIn }) {
   const [formData, setFormData] = useState({
     username: "",
     password: "",
   });
+
+  const baseURL = "http://localhost:3000";
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -15,15 +18,26 @@ function Landing({ onSignIn }) {
     }));
   };
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    // TODO: Make POST request to /login to authenticate the user
-    console.log("Log In clicked");
-    onSignIn();
+    try {
+      const response = await axios.post(`${baseURL}/users/login`, formData);
+
+      if (response.status === 200) {
+        console.log("Log In successful");
+        onSignIn();
+      }
+    } catch (error) {
+      console.log("Log In failed");
+      setFormData({
+        username: "",
+        password: "",
+      });
+    }
   };
 
   const inputFields = [
-    { name: "username", placeholder: "Email", type: "text" },
+    { name: "username", placeholder: "Username", type: "text" },
     { name: "password", placeholder: "Password", type: "password" },
   ];
 

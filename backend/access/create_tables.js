@@ -1,5 +1,6 @@
 const dbaccess = require('./db_access');
 const config = require('../config.json'); // Load configuration
+const fs = require('fs');
 
 function sendQueryOrCommand(db, query, params = []) {
   return new Promise((resolve, reject) => {
@@ -151,4 +152,38 @@ var result = create_tables(dbaccess);
 console.log('Tables created');
 //db.close_db();
 
+const populateNames = async function populateFriendsTable() {
+  const csvFilePath = '../data/names.csv';
+  const csvData = fs.readFileSync(csvFilePath, 'utf-8');
+
+  // Split CSV data by newlines and parse each line
+  const rows = csvData
+    .trim()
+    .split('\n')
+    .map((row) => row.split(','));
+
+  // Assuming the first row of the CSV contains column headers
+  const columns = rows.shift();
+
+  // Generate the INSERT query dynamically
+  let insertQuery = `INSERT INTO names (nconst, primaryName, birthYear, deathYear) VALUES `;
+  rows.forEach((row) => {
+    insertQuery += `('${row[3]}', '${row[0]}', '${row[1]}', '${row[2]}'),`;
+  });
+  insertQuery = insertQuery.slice(0, -1);
+  insertQuery += ';';
+  console.log('finished creating query');
+  try {
+    await dbaccess.insert_items(insertQuery);
+  } catch (e) {
+    console.log(e);
+    return;
+  }
+  console.log('finished adding items');
+  return;
+};
+
+
+populateNames();
+console.log("finished populating names");
 const PORT = config.serverPort;

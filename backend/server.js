@@ -1,5 +1,4 @@
 const express = require('express');
-const routes = require('./controllers/userController');
 const app = require('./app');
 
 app.use(express.json());

@@ -7,7 +7,7 @@ exports.createComment = async (req, res) => {
   const { content, hashtags } = req.body;
 
   if (content == null) {
-    return res.status(400).json({ error: 'Content cannot be empty.' });
+    return res.status(HTTP_STATUS.BAD_REQUEST).json({ error: 'Content cannot be empty.' });
   }
 
   try {
@@ -25,10 +25,10 @@ exports.createComment = async (req, res) => {
     await db.send_sql(
       `INSERT INTO comments (author_id, post_id, content, timestamp) VALUES (${req.session.user_id}, ${postId}, '${content}', '${timestamp}')`
     );
-    return res.status(200).json({ success: 'Comment created successfully.' });
+    return res.status(HTTP_STATUS.SUCCESS).json({ success: 'Comment created successfully.' });
   } catch (err) {
     console.log(err);
-    return res.status(500).json({ error: 'Error querying database.' });
+    return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ error: 'Error querying database.' });
   }
 };
 

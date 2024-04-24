@@ -12,6 +12,7 @@ exports.register = async function (req, res) {
     email,
     affiliation,
     birthday,
+    linked_nconst,
   } = req.body;
 
   if (
@@ -21,7 +22,8 @@ exports.register = async function (req, res) {
     lastName == null ||
     email == null ||
     affiliation == null ||
-    birthday == null
+    birthday == null ||
+    linked_nconst == null
   ) {
     res.status(400).json({
       error:
@@ -41,7 +43,7 @@ exports.register = async function (req, res) {
       });
     }
 
-    console.log("hashing password");
+    console.log('hashing password');
 
     const hashed = await new Promise((resolve, reject) => {
       bcrypt.hash(password, 10, (err, hash) => {
@@ -54,19 +56,21 @@ exports.register = async function (req, res) {
     });
 
     await db.send_sql(
-      `INSERT INTO users (username, hashed_password, first_name, last_name, email, affiliation, birthday) VALUES ('${username}', '${hashed}', '${firstName}', '${lastName}', '${email}', '${affiliation}', '${birthday}')`
+      `INSERT INTO users (username, hashed_password, first_name, last_name, email, affiliation, birthday, linked_nconst) VALUES ('${username}', '${hashed}', '${firstName}', '${lastName}', '${email}', '${affiliation}', '${birthday}', '${linked_nconst}')`
     );
 
     return res.status(HTTP_STATUS.CREATED).json({ username: username });
   } catch (err) {
     console.log(err);
-    return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ error: 'Error querying database.' });
+    return res
+      .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+      .json({ error: 'Error querying database.' });
   }
 };
 
-exports.login = async (req, res) => {
-  const username = req.body.username;
-  const password = req.body.password;
+exports.login = async function (req, res) {
+  const { username, password } = req.body;
+
   if (username == null || password == null) {
     return res.status(400).json({
       error:
@@ -75,20 +79,25 @@ exports.login = async (req, res) => {
   }
   try {
     const correct = await db.send_sql(
-      `SELECT password, user_id FROM users WHERE username = '${username}'`
+      `SELECT hashed_password, user_id FROM users WHERE username = '${username}'`
     );
+
     let matches;
     if (correct.length < 1) {
       matches = false;
     } else {
       matches = await new Promise((resolve, reject) => {
-        bcrypt.compare(password, correct[0]['password'], (err, result) => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve(result);
+        bcrypt.compare(
+          password,
+          correct[0]['hashed_password'],
+          (err, result) => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve(result);
+            }
           }
-        });
+        );
       });
     }
     if (correct.length < 1 || !matches) {
@@ -117,12 +126,22 @@ exports.changePassword = async (req, res) => {
   const { newPassword, confirmPassword } = req.body;
   const { user_id } = req.session;
 
+  if (user_id == null) {
+    return res
+      .status(HTTP_STATUS.UNAUTHORIZED)
+      .json({ error: 'You must be logged in to change your password.' });
+  }
+
   if (newPassword == null || confirmPassword == null) {
-    return res.status(400).json({ error: 'One or more fields were empty.' });
+    return res
+      .status(HTTP_STATUS.BAD_REQUEST)
+      .json({ error: 'One or more fields were empty.' });
   }
 
   if (newPassword !== confirmPassword) {
-    return res.status(400).json({ error: 'Passwords do not match.' });
+    return res
+      .status(HTTP_STATUS.BAD_REQUEST)
+      .json({ error: 'Passwords do not match.' });
   }
 
   try {
@@ -136,7 +155,7 @@ exports.changePassword = async (req, res) => {
       });
     });
     await db.send_sql(
-      `UPDATE users SET password = '${hashed}' WHERE user_id = ${user_id}`
+      `UPDATE users SET hashed_password = '${hashed}' WHERE user_id = ${user_id}`
     );
     return res.status(200).json({ success: 'Password changed successfully.' });
   } catch (err) {
@@ -149,18 +168,30 @@ exports.changeEmail = async (req, res) => {
   const { email } = req.body;
   const { user_id } = req.session;
 
+  if (user_id == null) {
+    return res
+      .status(HTTP_STATUS.UNAUTHORIZED)
+      .json({ error: 'You must be logged in to change your password.' });
+  }
+
   if (email == null) {
-    return res.status(400).json({ error: 'Email cannot be empty.' });
+    return res
+      .status(HTTP_STATUS.BAD_REQUEST)
+      .json({ error: 'Email cannot be empty.' });
   }
 
   try {
     await db.send_sql(
       `UPDATE users SET email = '${email}' WHERE user_id = ${user_id}`
     );
-    return res.status(200).json({ success: 'Email changed successfully.' });
+    return res
+      .status(HTTP_STATUS.SUCCESS)
+      .json({ success: 'Email changed successfully.' });
   } catch (err) {
     console.log(err);
-    return res.status(500).json({ error: 'Error querying database.' });
+    return res
+      .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+      .json({ error: 'Error querying database.' });
   }
 };
 

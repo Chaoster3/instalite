@@ -148,7 +148,7 @@ export function Chat() {
                       : chat.name}
                   </div>
                   <div className="text-sm text-right text-gray-500">
-                    {chat.messages[0].message}
+                    {chat.messages[Object.entries(chat.messages).length - 1].message}
                   </div>
                 </div>
               </div>

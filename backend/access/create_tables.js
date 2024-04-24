@@ -53,7 +53,7 @@ async function create_tables(db) {
       nconst VARCHAR(10) PRIMARY KEY, \
       primaryName VARCHAR(255), \
       birthYear VARCHAR(4), \
-      deathYear VARCHAR(4), \
+      deathYear VARCHAR(4) \
     );'
   );
 
@@ -116,10 +116,10 @@ async function create_tables(db) {
       post_id INT NOT NULL AUTO_INCREMENT, \
       author_id INT, \
       content VARCHAR(255), \
-      hashtag_ids VARCHAR(255), \
+      hashtag_ids INT, \
       image VARCHAR(255), \
       PRIMARY KEY(post_id), \
-      FOREIGN KEY(author_id) REFERENCES users(user_id) \
+      FOREIGN KEY(author_id) REFERENCES users(user_id), \
       FOREIGN KEY(hashtag_ids) REFERENCES hashtags(hashtag_id) \
     );'
   );
@@ -131,11 +131,11 @@ async function create_tables(db) {
       post_id INT, \
       author_id INT, \
       content VARCHAR(255), \
-      hashtag_ids VARCHAR(255), \
+      hashtag_ids INT, \
       timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP, \
       PRIMARY KEY(comment_id), \
       FOREIGN KEY(post_id) REFERENCES posts(post_id), \
-      FOREIGN KEY(author_id) REFERENCES users(user_id) \
+      FOREIGN KEY(author_id) REFERENCES users(user_id), \
       FOREIGN KEY(hashtag_ids) REFERENCES hashtags(hashtag_id) \
     );'
   );
@@ -145,6 +145,7 @@ async function create_tables(db) {
 
 // Database connection setup
 const db = dbaccess.get_db_connection();
+console.log('Connected to database');
 
 var result = create_tables(dbaccess);
 console.log('Tables created');

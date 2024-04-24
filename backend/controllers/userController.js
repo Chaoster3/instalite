@@ -110,7 +110,7 @@ exports.getAllFriends = async (req, res) => {
   }
 }
 
-exports.getPostsMainPage = async (req, req) => {
+exports.getPostsMainPage = async (req, res) => {
   const { user_id } = req.session;
 
   if (user_id == null) {

@@ -15,6 +15,7 @@ exports.register = async function (req, res) {
     birthday,
     linked_nconst,
   } = req.body;
+  console.log(req);
 
   if (
     username == null ||

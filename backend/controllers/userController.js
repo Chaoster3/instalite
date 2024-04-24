@@ -1,7 +1,6 @@
-const dbsingleton = require('../models/db_access.js');
 const bcrypt = require('bcrypt');
-const dbsingleton = require('../access/db_access.js');
-
+const dbsingleton = require('../access/db_access');
+const HTTP_STATUS = require('../utils/httpStatus');
 const db = dbsingleton;
 
 exports.register = async function (req, res) {
@@ -13,7 +12,9 @@ exports.register = async function (req, res) {
     email,
     affiliation,
     birthday,
+    linked_nconst,
   } = req.body;
+
   if (
     username == null ||
     password == null ||
@@ -21,25 +22,31 @@ exports.register = async function (req, res) {
     lastName == null ||
     email == null ||
     affiliation == null ||
-    birthday == null
+    birthday == null ||
+    linked_nconst == null
   ) {
-    return res.status(400).json({
+    res.status(400).json({
       error:
         'One or more of the fields you entered was empty, please try again.',
     });
   }
+
   try {
     const existing = await db.send_sql(
       `SELECT * FROM users WHERE username = '${username}'`
     );
+
     if (existing.length > 0) {
-      return res.status(409).json({
+      return res.status(HTTP_STATUS.CONFLICT).json({
         error:
           'An account with this username already exists, please try again.',
       });
     }
+
+    console.log('hashing password');
+
     const hashed = await new Promise((resolve, reject) => {
-      bscrypt.hash(password, 10, (err, hash) => {
+      bcrypt.hash(password, 10, (err, hash) => {
         if (err) {
           reject(err);
         } else {
@@ -47,34 +54,34 @@ exports.register = async function (req, res) {
         }
       });
     });
+
     await db.send_sql(
-      `INSERT INTO users (username, password, firstName, lastName, email, affiliation, birthday) VALUES ('${username}', '${hashed}', '${firstName}', '${lastName}', '${email}', '${affiliation}', '${birthday}')`
+      `INSERT INTO users (username, hashed_password, first_name, last_name, email, affiliation, birthday, linked_nconst) VALUES ('${username}', '${hashed}', '${firstName}', '${lastName}', '${email}', '${affiliation}', '${birthday}', '${linked_nconst}')`
     );
-    const found = await db.send_sql(
-      `SELECT user_id FROM users WHERE username = '${username}'`
-    );
-    req.session.user_id = found[0]['user_id'];
-    req.session.username = username;
-    return res.status(200).json({ username: username });
+
+    return res.status(HTTP_STATUS.CREATED).json({ username: username });
   } catch (err) {
     console.log(err);
-    return res.status(500).json({ error: 'Error querying database.' });
+    return res
+      .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+      .json({ error: 'Error querying database.' });
   }
 };
 
-exports.login = async (req, res) => {
-  const username = req.body.username;
-  const password = req.body.password;
+exports.login = async function (req, res) {
+  const { username, password } = req.body;
+
   if (username == null || password == null) {
-    return res.status(400).json({
+    return res.status(HTTP_STATUS.BAD_REQUEST).json({
       error:
         'One or more of the fields you entered was empty, please try again.',
     });
   }
   try {
     const correct = await db.send_sql(
-      `SELECT password, user_id FROM users WHERE username = '${username}'`
+      `SELECT hashed_password, user_id FROM users WHERE username = '${username}'`
     );
+
     let matches;
     if (correct.length < 1) {
       matches = false;
@@ -82,7 +89,7 @@ exports.login = async (req, res) => {
       matches = await new Promise((resolve, reject) => {
         bcrypt.compare(
           password,
-          correct[0]['password'],
+          correct[0]['hashed_password'],
           (err, result) => {
             if (err) {
               reject(err);
@@ -95,16 +102,18 @@ exports.login = async (req, res) => {
     }
     if (correct.length < 1 || !matches) {
       return res
-        .status(401)
+        .status(HTTP_STATUS.UNAUTHORIZED)
         .json({ error: 'Username and/or password are invalid.' });
     } else {
       req.session.user_id = correct[0]['user_id'];
       req.session.username = username;
-      return res.status(200).json({ username: username });
+      return res.status(HTTP_STATUS.SUCCESS).json({ username: username });
     }
   } catch (err) {
     console.log(err);
-    return res.status(500).json({ error: 'Error querying database' });
+    return res
+      .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+      .json({ error: 'Error querying database' });
   }
 };
 
@@ -112,19 +121,31 @@ exports.logout = (req, res) => {
   // TODO: fill in log out logic to disable session info
   req.session.user_id = null;
   req.session.username = null;
-  return res.status(200).json({ message: 'You were successfully logged out.' });
+  return res
+    .status(HTTP_STATUS.SUCCESS)
+    .json({ message: 'You were successfully logged out.' });
 };
 
 exports.changePassword = async (req, res) => {
-  const {newPassword, confirmPassword} = req.body;
-  const {user_id} = req.session;
+  const { newPassword, confirmPassword } = req.body;
+  const { user_id } = req.session;
+
+  if (user_id == null) {
+    return res
+      .status(HTTP_STATUS.UNAUTHORIZED)
+      .json({ error: 'You must be logged in to change your password.' });
+  }
 
   if (newPassword == null || confirmPassword == null) {
-    return res.status(400).json({error: 'One or more fields were empty.'});
+    return res
+      .status(HTTP_STATUS.BAD_REQUEST)
+      .json({ error: 'One or more fields were empty.' });
   }
 
   if (newPassword !== confirmPassword) {
-    return res.status(400).json({error: 'Passwords do not match.'});
+    return res
+      .status(HTTP_STATUS.BAD_REQUEST)
+      .json({ error: 'Passwords do not match.' });
   }
 
   try {
@@ -138,33 +159,49 @@ exports.changePassword = async (req, res) => {
       });
     });
     await db.send_sql(
-      `UPDATE users SET password = '${hashed}' WHERE user_id = ${user_id}`
+      `UPDATE users SET hashed_password = '${hashed}' WHERE user_id = ${user_id}`
     );
-    return res.status(200).json({success: 'Password changed successfully.'});
+    return res
+      .status(HTTP_STATUS.SUCCESS)
+      .json({ success: 'Password changed successfully.' });
   } catch (err) {
     console.log(err);
-    return res.status(500).json({error: 'Error querying database.'});
+    return res
+      .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+      .json({ error: 'Error querying database.' });
   }
-}
+};
 
 exports.changeEmail = async (req, res) => {
-  const {email} = req.body;
-  const {user_id} = req.session;
+  const { email } = req.body;
+  const { user_id } = req.session;
+
+  if (user_id == null) {
+    return res
+      .status(HTTP_STATUS.UNAUTHORIZED)
+      .json({ error: 'You must be logged in to change your password.' });
+  }
 
   if (email == null) {
-    return res.status(400).json({error: 'Email cannot be empty.'});
+    return res
+      .status(HTTP_STATUS.BAD_REQUEST)
+      .json({ error: 'Email cannot be empty.' });
   }
 
   try {
     await db.send_sql(
       `UPDATE users SET email = '${email}' WHERE user_id = ${user_id}`
     );
-    return res.status(200).json({success: 'Email changed successfully.'});
+    return res
+      .status(HTTP_STATUS.SUCCESS)
+      .json({ success: 'Email changed successfully.' });
   } catch (err) {
     console.log(err);
-    return res.status(500).json({error: 'Error querying database.'});
+    return res
+      .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+      .json({ error: 'Error querying database.' });
   }
-}
+};
 
 exports.changeActor = async (req, res) => {
   const { user_id } = req.session;
@@ -177,18 +214,24 @@ exports.changeActor = async (req, res) => {
       `SELECT * FROM users WHERE user_id = ${user_id}`
     );
     if (user.length === 0) {
-      return res.status(404).json({ error: 'User not found.' });
+      return res
+        .status(HTTP_STATUS.NOT_FOUND)
+        .json({ error: 'User not found.' });
     }
 
     await db.send_sql(
       `UPDATE users SET img_id = ${img_id} WHERE user_id = ${user_id}`
     );
-    return res.status(200).json({ success: 'Actor changed successfully.' });
+    return res
+      .status(HTTP_STATUS.SUCCESS)
+      .json({ success: 'Actor changed successfully.' });
   } catch (err) {
     console.log(err);
-    return res.status(500).json({ error: 'Error querying database.' });
+    return res
+      .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+      .json({ error: 'Error querying database.' });
   }
-}
+};
 
 exports.getFiveClosestActors = async (req, res) => {
   const { user_id } = req.session;
@@ -199,12 +242,16 @@ exports.getFiveClosestActors = async (req, res) => {
       `SELECT actor_id FROM users WHERE user_id = ${user_id}`
     );
     if (actor.length === 0) {
-      return res.status(404).json({error: 'Actor not found.'});
+      return res
+        .status(HTTP_STATUS.NOT_FOUND)
+        .json({ error: 'Actor not found.' });
     }
 
     //// TODO: Find the 5 closest embeddings
   } catch (err) {
     console.log(err);
-    return res.status(500).json({error: 'Error querying database.'});
+    return res
+      .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+      .json({ error: 'Error querying database.' });
   }
-}
+};

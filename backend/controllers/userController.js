@@ -7,6 +7,7 @@ exports.register = async function (req, res) {
   const {
     username,
     password,
+    passwordConfirm,
     firstName,
     lastName,
     email,
@@ -18,16 +19,34 @@ exports.register = async function (req, res) {
   if (
     username == null ||
     password == null ||
+    passwordConfirm == null ||
     firstName == null ||
     lastName == null ||
     email == null ||
     affiliation == null ||
-    birthday == null ||
-    linked_nconst == null
+    birthday == null
   ) {
-    res.status(400).json({
+    console.log('one or more fields were empty');
+    // print everything
+    console.log(username);
+    console.log(password);
+    console.log(passwordConfirm)
+    console.log(firstName)
+    console.log(lastName)
+    console.log(email)
+    console.log(affiliation)
+    console.log(birthday)
+    console.log(linked_nconst)
+    return res.status(400).json({
       error:
         'One or more of the fields you entered was empty, please try again.',
+    });
+  }
+
+  if (password !== passwordConfirm) {
+    console.log('passwords do not match')
+    return res.status(HTTP_STATUS.BAD_REQUEST).json({
+      error: 'Passwords do not match, please try again.',
     });
   }
 

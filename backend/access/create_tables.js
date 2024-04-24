@@ -117,13 +117,13 @@ async function create_tables(db) {
       post_id INT NOT NULL AUTO_INCREMENT, \
       author_id INT, \
       content VARCHAR(255), \
-      hashtag_ids INT, \
       image VARCHAR(255), \
       PRIMARY KEY(post_id), \
-      FOREIGN KEY(author_id) REFERENCES users(user_id), \
-      FOREIGN KEY(hashtag_ids) REFERENCES hashtags(hashtag_id) \
+      FOREIGN KEY(author_id) REFERENCES users(user_id) \
     );'
   );
+
+  //      hashtag_ids INT, \
 
   // Comments table
   var q5 = db.create_tables(
@@ -152,38 +152,38 @@ var result = create_tables(dbaccess);
 console.log('Tables created');
 //db.close_db();
 
-const populateNames = async function populateFriendsTable() {
-  const csvFilePath = '../data/names.csv';
-  const csvData = fs.readFileSync(csvFilePath, 'utf-8');
+// const populateNames = async function populateFriendsTable() {
+//   const csvFilePath = '../data/names.csv';
+//   const csvData = fs.readFileSync(csvFilePath, 'utf-8');
 
-  // Split CSV data by newlines and parse each line
-  const rows = csvData
-    .trim()
-    .split('\n')
-    .map((row) => row.split(','));
+//   // Split CSV data by newlines and parse each line
+//   const rows = csvData
+//     .trim()
+//     .split('\n')
+//     .map((row) => row.split(','));
 
-  // Assuming the first row of the CSV contains column headers
-  const columns = rows.shift();
+//   // Assuming the first row of the CSV contains column headers
+//   const columns = rows.shift();
 
-  // Generate the INSERT query dynamically
-  let insertQuery = `INSERT INTO names (nconst, primaryName, birthYear, deathYear) VALUES `;
-  rows.forEach((row) => {
-    insertQuery += `('${row[3]}', '${row[0]}', '${row[1]}', '${row[2]}'),`;
-  });
-  insertQuery = insertQuery.slice(0, -1);
-  insertQuery += ';';
-  console.log('finished creating query');
-  try {
-    await dbaccess.insert_items(insertQuery);
-  } catch (e) {
-    console.log(e);
-    return;
-  }
-  console.log('finished adding items');
-  return;
-};
+//   // Generate the INSERT query dynamically
+//   let insertQuery = `INSERT INTO names (nconst, primaryName, birthYear, deathYear) VALUES `;
+//   rows.forEach((row) => {
+//     insertQuery += `('${row[3]}', '${row[0]}', '${row[1]}', '${row[2]}'),`;
+//   });
+//   insertQuery = insertQuery.slice(0, -1);
+//   insertQuery += ';';
+//   console.log('finished creating query');
+//   try {
+//     await dbaccess.insert_items(insertQuery);
+//   } catch (e) {
+//     console.log(e);
+//     return;
+//   }
+//   console.log('finished adding items');
+//   return;
+// };
 
 
-populateNames();
-console.log("finished populating names");
+// populateNames();
+// console.log("finished populating names");
 const PORT = config.serverPort;

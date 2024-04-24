@@ -221,3 +221,10 @@ exports.changeEmail = async (req, res) => {
       .json({ error: 'Error querying database.' });
   }
 };
+
+// A "forgot password" option that sends to the user's email address a password reset token and a link to the password reset screen;
+exports.resetPassword = async (req, res) => {
+  return res
+    .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+    .json({ error: "Haven't implemented." });
+}

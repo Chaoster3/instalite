@@ -61,10 +61,10 @@ async function create_tables(db) {
   // This table should already exist from HW3
   var q1 = db.create_tables(
     'CREATE TABLE IF NOT EXISTS friends ( \
-      followed VARCHAR(10), \
-      follower VARCHAR(10), \
-      FOREIGN KEY (follower) REFERENCES names(nconst), \
-      FOREIGN KEY (followed) REFERENCES names(nconst) \
+      followed INT, \
+      follower INT, \
+      FOREIGN KEY (follower) REFERENCES users(user_id), \
+      FOREIGN KEY (followed) REFERENCES users(user_id) \
     );'
   );
 
@@ -72,7 +72,7 @@ async function create_tables(db) {
   var q2 = db.create_tables(
     'CREATE TABLE IF NOT EXISTS users ( \
       user_id INT NOT NULL AUTO_INCREMENT, \
-      username VARCHAR(255) NOT NULL, \
+      username VARCHAR(255) NOT NULL UNIQUE, \
       hashed_password VARCHAR(255) NOT NULL, \
       linked_nconst VARCHAR(10), \
       image_id VARCHAR(255), \

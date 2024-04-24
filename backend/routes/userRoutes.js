@@ -9,9 +9,16 @@ router.route('/login').post(authController.login);
 router.route('/logout').get(authController.logout);
 router.route('/changePassword').put(authController.changePassword);
 router.route('/changeEmail').put(authController.changeEmail);
+router.route('/resetPassword').post(authController.resetPassword);
 
-// User routes 
-router.route('/getFiveClosestActors').get(userController.getFiveClosestActors);
-router.route('/changeActor').put(userController.changeActor);
+// User routes
+router.route('/getFiveClosestActors').get(userController.getFiveClosestActors); // need to verify that it works
+router.route('/changeActor').put(userController.changeActor); // need to verify that it works
+router.route('/uploadProfilePicture').put(userController.uploadProfilePicture); // need to verify that it works
+router.route('/getAllFriends').get(userController.getAllFriends);
+router.route('/getPostsMainPage').get(userController.getPostsMainPage);
+router.route('/getPostsProminentFigures').get(userController.getPostsProminentFigures); // TODO: implement this
+router.route('/addFriends').post(userController.addFriends);
+router.route('/removeFriends').post(userController.removeFriends);
 
 module.exports = router;

@@ -22,7 +22,6 @@ function Landing({ onSignIn }) {
     e.preventDefault();
     try {
       const response = await axios.post(`${baseURL}/users/login`, formData);
-
       if (response.status === 200) {
         console.log("Log In successful");
         onSignIn();

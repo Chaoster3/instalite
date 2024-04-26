@@ -3,8 +3,23 @@ const userRouter = require('./routes/userRoutes');
 const postsRouter = require('./routes/postsRoutes');
 const commentsRouter = require('./routes/commentsRoutes');
 const cors = require('cors');
+const chroma = require('./basic-face-match-main/app.js');
 const path = require('path');
+const { ConnectContactLens } = require('aws-sdk');
 const app = express();
+
+let collection;
+
+chroma.startChroma().then(col => collection = col);
+
+console.log('bbadfbsdfbsdfbsdf');
+console.log(collection);
+
+app.use((req, res, next) => {
+    req.collection = collection;
+    console.log(collection);
+    next();
+});
 
 app.use(express.json());
 app.use(cors());

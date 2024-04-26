@@ -4,6 +4,7 @@ const chroma = require('../basic-face-match-main/app.js');
 const aws = require('aws-sdk');
 const process = require('process');
 const path = require('path');
+const fs = require('fs');
 
 
 const db = dbsingleton;
@@ -263,13 +264,13 @@ exports.getClosest = async (req, res) => {
     }
 
     const file = req.file;
-
     // Read the file from disk
-    fs.readFileSync(file.path, (err, data) => {
+    fs.readFile(file.path, (err, data) => {
         if (err) {
             console.error('Error reading file:', err);
             return res.status(500).send('Error uploading file');
         } else {
+            console.log(file.path);
             const params = {
                 Bucket: process.env.S3_BUCKET,
                 Key: username,
@@ -284,17 +285,19 @@ exports.getClosest = async (req, res) => {
                 } else {
                     responseData.uri = s3Data.Location;
                     try {
-                        const collection = chroma.startChroma();
-                        for (var item of await chroma.findTopKMatches(collection, '/selfies' + username, 5)) {
+                        for (var item of await chroma.findTopKMatches(req.collection, file.path, 5)) {
                             for (var i = 0; i < item.ids[0].length; i++) {
+                                console.log(item.documents[0][i].slice(0, -3));
                                 const name = await db.send_sql(
-                                    `SELECT name FROM names WHERE nconst = '${item.documents[0][i]}'`
+                                    `SELECT primaryName FROM names WHERE nconst = '${item.documents[0][i].slice(0, -4)}'`
                                 );
-                                responseData[i] = [name[0]['name'],item.documents[0][i]];
+                                console.log(name);
+                                responseData[i] = [name[0]['primaryName'],item.documents[0][i]];
                             }
                         }
                         return res.status(200).json(responseData);
                     } catch (err) {
+                        console.log(err);
                         return res.status(500).json({ error: 'Error with ChromaDB' });
                     }
                 }

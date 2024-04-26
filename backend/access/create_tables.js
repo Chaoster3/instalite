@@ -1,17 +1,18 @@
 const dbaccess = require('./db_access');
 const config = require('../config.json'); // Load configuration
+const fs = require('fs');
 
 function sendQueryOrCommand(db, query, params = []) {
-    return new Promise((resolve, reject) => {
-      db.query(query, params, (err, results) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(results);
-        }
-      });
+  return new Promise((resolve, reject) => {
+    db.query(query, params, (err, results) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(results);
+      }
     });
-  }
+  });
+}
 
 async function create_tables(db) {
   // These tables should already exist from prior homeworks.
@@ -48,51 +49,141 @@ async function create_tables(db) {
   //     FOREIGN KEY (person) REFERENCES names(nconst_short), \
   //     FOREIGN KEY (recommendation) REFERENCES names(nconst_short) \
   //     );')
-  
-
-
+  var q0 = db.create_tables(
+    'CREATE TABLE IF NOT EXISTS names ( \
+      nconst VARCHAR(10) PRIMARY KEY, \
+      primaryName VARCHAR(255), \
+      birthYear VARCHAR(4), \
+      deathYear VARCHAR(4) \
+    );'
+  );
 
   // This table should already exist from HW3
-  var q1 = db.create_tables('CREATE TABLE IF NOT EXISTS friends ( \
-    followed VARCHAR(10), \
-    follower VARCHAR(10), \
-    FOREIGN KEY (follower) REFERENCES names(nconst), \
-    FOREIGN KEY (followed) REFERENCES names(nconst) \
-    );')
+  var q1 = db.create_tables(
+    'CREATE TABLE IF NOT EXISTS friends ( \
+      followed INT, \
+      follower INT, \
+      FOREIGN KEY (follower) REFERENCES users(user_id), \
+      FOREIGN KEY (followed) REFERENCES users(user_id) \
+    );'
+  );
 
-    // TODO: create users table
-  var q2 = db.create_tables('CREATE TABLE IF NOT EXISTS users ( \
-    user_id INT NOT NULL AUTO_INCREMENT, \
-    username VARCHAR(255) NOT NULL, \
-    hashed_password VARCHAR(255) NOT NULL, \
-    linked_nconst VARCHAR(10), \
-    PRIMARY KEY(user_id), \
-    FOREIGN KEY(linked_nconst) REFERENCES names(nconst) \
-    );');
-    
-    // TODO: create posts table
-    var q3 = db.create_tables('CREATE TABLE IF NOT EXISTS posts ( \
+  // TODO: create users table
+  var q2 = db.create_tables(
+    'CREATE TABLE IF NOT EXISTS users ( \
+      user_id INT NOT NULL AUTO_INCREMENT, \
+      username VARCHAR(255) NOT NULL UNIQUE, \
+      hashed_password VARCHAR(255) NOT NULL, \
+      linked_nconst VARCHAR(10), \
+      image_id VARCHAR(255), \
+      first_name VARCHAR(255), \
+      last_name VARCHAR(255), \
+      email VARCHAR(255), \
+      affiliation VARCHAR(255), \
+      birthday DATE, \
+      interests VARCHAR(255), \
+      PRIMARY KEY(user_id), \
+      FOREIGN KEY(linked_nconst) REFERENCES names(nconst) \
+    );'
+  );
+
+  // TODO: create posts table
+  // var q3 = db.create_tables(
+  //   'CREATE TABLE IF NOT EXISTS posts ( \
+  //     post_id INT NOT NULL AUTO_INCREMENT, \
+  //     parent_post INT, \
+  //     title VARCHAR(255), \
+  //     content VARCHAR(255), \
+  //     author_id INT, \
+  //     PRIMARY KEY(post_id), \
+  //     FOREIGN KEY(parent_post) REFERENCES posts(post_id), \
+  //     FOREIGN KEY(author_id) REFERENCES users(user_id) \
+  //   );'
+  // );
+
+  // Create hashtag table
+  var q3 = db.create_tables(
+    'CREATE TABLE IF NOT EXISTS hashtags ( \
+      hashtag_id INT NOT NULL AUTO_INCREMENT, \
+      name VARCHAR(255), \
+      count INT, \
+      PRIMARY KEY(hashtag_id) \
+    );'
+  );
+
+  // Post table
+  var q4 = db.create_tables(
+    'CREATE TABLE IF NOT EXISTS posts ( \
       post_id INT NOT NULL AUTO_INCREMENT, \
-      parent_post INT, \
-      title VARCHAR(255), \
-      content VARCHAR(255), \
       author_id INT, \
+      content VARCHAR(255), \
+      image VARCHAR(255), \
       PRIMARY KEY(post_id), \
-      FOREIGN KEY(parent_post) REFERENCES posts(post_id), \
       FOREIGN KEY(author_id) REFERENCES users(user_id) \
-    );');    
+    );'
+  );
 
-    return await Promise.all([q1, q2, q3]);
+  //      hashtag_ids INT, \
+
+  // Comments table
+  var q5 = db.create_tables(
+    'CREATE TABLE IF NOT EXISTS comments ( \
+      comment_id INT NOT NULL AUTO_INCREMENT, \
+      post_id INT, \
+      author_id INT, \
+      content VARCHAR(255), \
+      hashtag_ids INT, \
+      timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP, \
+      PRIMARY KEY(comment_id), \
+      FOREIGN KEY(post_id) REFERENCES posts(post_id), \
+      FOREIGN KEY(author_id) REFERENCES users(user_id), \
+      FOREIGN KEY(hashtag_ids) REFERENCES hashtags(hashtag_id) \
+    );'
+  );
+
+  return await Promise.all([q0, q1, q2, q3, q4, q5]);
 }
 
 // Database connection setup
 const db = dbaccess.get_db_connection();
+console.log('Connected to database');
 
 var result = create_tables(dbaccess);
 console.log('Tables created');
 //db.close_db();
 
+// const populateNames = async function populateFriendsTable() {
+//   const csvFilePath = '../data/names.csv';
+//   const csvData = fs.readFileSync(csvFilePath, 'utf-8');
 
+//   // Split CSV data by newlines and parse each line
+//   const rows = csvData
+//     .trim()
+//     .split('\n')
+//     .map((row) => row.split(','));
+
+//   // Assuming the first row of the CSV contains column headers
+//   const columns = rows.shift();
+
+//   // Generate the INSERT query dynamically
+//   let insertQuery = `INSERT INTO names (nconst, primaryName, birthYear, deathYear) VALUES `;
+//   rows.forEach((row) => {
+//     insertQuery += `('${row[3]}', '${row[0]}', '${row[1]}', '${row[2]}'),`;
+//   });
+//   insertQuery = insertQuery.slice(0, -1);
+//   insertQuery += ';';
+//   console.log('finished creating query');
+//   try {
+//     await dbaccess.insert_items(insertQuery);
+//   } catch (e) {
+//     console.log(e);
+//     return;
+//   }
+//   console.log('finished adding items');
+//   return;
+// };
+
+
+// populateNames();
+// console.log("finished populating names");
 const PORT = config.serverPort;
-
-

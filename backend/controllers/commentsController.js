@@ -16,7 +16,7 @@ exports.createComment = async (req, res) => {
       `SELECT * FROM posts WHERE post_id = ${postId}`
     );
     if (post.length === 0) {
-      return res.status(404).json({ error: 'Post not found.' });
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({ error: 'Post not found.' });
     }
 
     // Insert the comment

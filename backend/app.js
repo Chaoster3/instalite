@@ -9,7 +9,7 @@ const app = express();
 const session = require('express-session');
 
 app.use(express.json());
-app.use(cors());
+app.use(cors({credentials:true, origin: true}));
 
 app.use(session({
   secret: 'nets2120_insecure', saveUninitialized: true, cookie: { httpOnly: false }, resave: true

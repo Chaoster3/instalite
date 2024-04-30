@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import Navbar from "./Navbar";
-import Landing from "./Landing";
-import Signup from "./Signup";
+import Navbar from "./components/navbar/Navbar";
+import Login from "./components/auth/Login";
+import Signup from "./components/auth/Signup";
 import "./App.css";
+import axios from "axios";
+
+axios.defaults.withCredentials = true;
 
 function App() {
   const [isSignedIn, setIsSignedIn] = useState(false);
@@ -11,9 +14,25 @@ function App() {
     setIsSignedIn((prevIsSignedIn) => !prevIsSignedIn);
   };
 
+  // axios.defaults.withCredentials = true;
   useEffect(() => {
-    //TODO: Query backend/local storage to set isSignedIn
-    setIsSignedIn(false);
+    console.log("rerendering app");
+
+    const fetchData = async () => {
+      try {
+        const response = await axios.get(`http://localhost:3000/users/checkIfLoggedIn`,);
+        if (response.status === 200) {
+          setIsSignedIn(true);
+        } else {
+          setIsSignedIn(false);
+        }
+      } catch (error) {
+        console.error("Error fetching user status:", error);
+        setIsSignedIn(false);
+      }
+    };
+
+    fetchData();
   }, []);
 
   return (
@@ -23,7 +42,7 @@ function App() {
         <Route
           path="/"
           element={
-            isSignedIn ? <Navbar /> : <Landing onSignIn={toggleSignIn} />
+            isSignedIn ? <Navbar /> : <Login onSignIn={toggleSignIn} />
           }
         />
       </Routes>

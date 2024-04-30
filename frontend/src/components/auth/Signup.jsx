@@ -18,7 +18,7 @@ function Signup({ onSignIn }) {
     linked_nconst: '',
   });
 
-  const baseURL = 'http://localhost:3001';
+  const baseURL = 'http://localhost:3000';
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -85,6 +85,7 @@ function Signup({ onSignIn }) {
       }
     } catch (error) {
       console.log('Sign Up failed');
+      console.log(error);
       setFormData({
         username: '',
         password: '',

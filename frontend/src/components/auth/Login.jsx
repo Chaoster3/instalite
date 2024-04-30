@@ -2,11 +2,12 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 
-function Landing({ onSignIn }) {
+function Login({ onSignIn }) {
   const [formData, setFormData] = useState({
     username: "",
     password: "",
   });
+  const [loginStatus, setLoginStatus] = useState("");
 
   const baseURL = "http://localhost:3000";
 
@@ -21,13 +22,16 @@ function Landing({ onSignIn }) {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post(`${baseURL}/users/login`, formData);
+      const response = await axios.post(
+        `${baseURL}/users/login`,
+        formData,
+      );
       if (response.status === 200) {
-        console.log("Log In successful");
+        setLoginStatus("Login successful");
         onSignIn();
       }
     } catch (error) {
-      console.log("Log In failed");
+      setLoginStatus("Login failed");
       setFormData({
         username: "",
         password: "",
@@ -61,6 +65,7 @@ function Landing({ onSignIn }) {
             </label>
           </div>
         ))}
+        {loginStatus && <p className={loginStatus.includes('successful') ? 'text-green-500' : 'text-red-500'}>{loginStatus}</p>}
       </div>
       <div className="p-6 pt-0">
         <button
@@ -84,4 +89,4 @@ function Landing({ onSignIn }) {
   );
 }
 
-export default Landing;
+export default Login;

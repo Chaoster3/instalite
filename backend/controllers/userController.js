@@ -86,6 +86,7 @@ exports.uploadProfilePicture = async (req, res) => {
 }
 
 exports.getAllFriends = async (req, res) => {
+  console.log(req.session.user_id);
   const { user_id } = req.session;
 
   if (user_id == null) {

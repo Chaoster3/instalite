@@ -127,6 +127,7 @@ exports.login = async function (req, res) {
     } else {
       req.session.user_id = correct[0]['user_id'];
       req.session.username = username;
+      await req.session.save();
       return res.status(HTTP_STATUS.SUCCESS).json({ username: username });
     }
   } catch (err) {
@@ -228,4 +229,16 @@ exports.resetPassword = async (req, res) => {
   return res
     .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
     .json({ error: "Haven't implemented." });
+}
+
+
+// Checks if the user is signed in
+exports.checkIfLoggedIn = async (req, res) => {
+  console.log(req.session)
+  console.log(req.session.user_id)
+  if (req.session && req.session.user_id) {
+    return res.status(HTTP_STATUS.SUCCESS).json({ signedIn: true });
+  } else {
+    return res.status(HTTP_STATUS.UNAUTHORIZED).json({ signedIn: false });
+  }
 }

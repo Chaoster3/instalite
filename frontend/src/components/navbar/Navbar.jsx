@@ -14,31 +14,23 @@ import {
   ChatBubbleLeftRightIcon,
   MagnifyingGlassCircleIcon,
 } from "@heroicons/react/24/solid";
-import { Chat } from "./Chat";
-import { Friends } from "./Friends";
-import { Home } from "./Home";
-import { Profile } from "./Profile";
+import { Chat } from "../../Chat";
+import { Friends } from "../../Friends";
+import { Home } from "../../Home";
+import { Profile } from "../../Profile";
+import { BrowserRouter as Router, Route, Link } from "react-router-dom";
+
+
 
 export function NavbarWithSearch() {
   const [page, setPage] = useState(<Home />);
 
   const pages = [
-    {
-      title: "Home",
-      component: <Home />,
-      icon: HomeIcon,
-    },
-    {
-      title: "Add/Remove Friends",
-      component: <Friends />,
-      icon: UserPlusIcon,
-    },
-    {
-      title: "Chat",
-      component: <Chat />,
-      icon: ChatBubbleLeftRightIcon,
-    },
+    { title: "Home", component: <Home />, icon: HomeIcon, path: "/home" },
+    { title: "Add/Remove Friends", component: <Friends />, icon: UserPlusIcon, path: "/friends" },
+    { title: "Chat", component: <Chat />, icon: ChatBubbleLeftRightIcon, path: "/chat" }
   ];
+  
   return (
     <>
       <div className="mx-auto flex flex-col max-w-screen-xl  overflow-y-auto h-screen">

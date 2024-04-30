@@ -138,10 +138,11 @@ exports.login = async function (req, res) {
   }
 };
 
-exports.logout = (req, res) => {
+exports.logout = async function (req, res) {
   // TODO: fill in log out logic to disable session info
   req.session.user_id = null;
   req.session.username = null;
+  await req.session.save();
   return res
     .status(HTTP_STATUS.SUCCESS)
     .json({ message: 'You were successfully logged out.' });
@@ -234,11 +235,9 @@ exports.resetPassword = async (req, res) => {
 
 // Checks if the user is signed in
 exports.checkIfLoggedIn = async (req, res) => {
-  console.log(req.session)
-  console.log(req.session.user_id)
   if (req.session && req.session.user_id) {
-    return res.status(HTTP_STATUS.SUCCESS).json({ signedIn: true });
+    return res.status(HTTP_STATUS.SUCCESS).json({ data: req.session.username });
   } else {
-    return res.status(HTTP_STATUS.UNAUTHORIZED).json({ signedIn: false });
+    return res.status(HTTP_STATUS.UNAUTHORIZED).json({ data: false });
   }
 }

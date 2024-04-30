@@ -13,13 +13,14 @@ import {
   UserPlusIcon,
   ChatBubbleLeftRightIcon,
   MagnifyingGlassCircleIcon,
+  HeartIcon
 } from "@heroicons/react/24/solid";
 import { Chat } from "../../Chat";
 import { Friends } from "../../Friends";
-import { Home } from "../../Home";
+import Home from "../../Home";
+import CreatePosts from "../../CreatePosts";
 import { Profile } from "../../Profile";
-import { BrowserRouter as Router, Route, Link } from "react-router-dom";
-
+import Logout from "../auth/Logout";
 
 
 export function NavbarWithSearch() {
@@ -28,9 +29,11 @@ export function NavbarWithSearch() {
   const pages = [
     { title: "Home", component: <Home />, icon: HomeIcon, path: "/home" },
     { title: "Add/Remove Friends", component: <Friends />, icon: UserPlusIcon, path: "/friends" },
-    { title: "Chat", component: <Chat />, icon: ChatBubbleLeftRightIcon, path: "/chat" }
+    { title: "Chat", component: <Chat />, icon: ChatBubbleLeftRightIcon, path: "/chat" },
+    { title: "Create Posts", component: <CreatePosts />, icon: HeartIcon, path: "/create_posts" },
+    { title: "Logout", component: <Logout />, icon: HeartIcon, path: "/logout"}
   ];
-  
+
   return (
     <>
       <div className="mx-auto flex flex-col max-w-screen-xl  overflow-y-auto h-screen">

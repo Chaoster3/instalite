@@ -1,15 +1,16 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
+import { BACKEND_URL } from "../../utils/constants";
+import { useNavigate } from 'react-router-dom';
 
-function Login({ onSignIn }) {
+function Login() {
   const [formData, setFormData] = useState({
     username: "",
     password: "",
   });
   const [loginStatus, setLoginStatus] = useState("");
-
-  const baseURL = "http://localhost:3000";
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -23,12 +24,12 @@ function Login({ onSignIn }) {
     e.preventDefault();
     try {
       const response = await axios.post(
-        `${baseURL}/users/login`,
+        `${BACKEND_URL}/users/login`,
         formData,
       );
       if (response.status === 200) {
         setLoginStatus("Login successful");
-        onSignIn();
+        navigate('/');
       }
     } catch (error) {
       setLoginStatus("Login failed");

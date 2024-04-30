@@ -97,7 +97,10 @@ exports.getAllFriends = async (req, res) => {
 
   try {
     const friends = await db.send_sql(
-      `SELECT followed FROM friends WHERE follower = ${user_id}`
+      `SELECT users.username AS username
+       FROM friends
+        JOIN users ON friends.followed = users.user_id
+       WHERE friends.follower = ${user_id}`
     );
 
     return res

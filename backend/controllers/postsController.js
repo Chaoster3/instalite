@@ -3,10 +3,10 @@ const HTTP_STATUS = require('../utils/httpStatus');
 const db = dbsingleton;
 
 exports.createPost = async (req, res) => {
-  const { image, content, hashtag } = req.body;
+  const { image, content, hashtags } = req.body;
 
   // Cannot all be null
-  if (image == null && content == null && hashtag == null) {
+  if (image == null && content == null && hashtags == null) {
     return res
       .status(HTTP_STATUS.BAD_REQUEST)
       .json({ error: 'All fields cannot be empty.' });

@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 const Home = () => {
   // Display the current logged in user's name
   const [user, setUser] = useState("");
+  const [posts, setPosts] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -29,13 +30,41 @@ const Home = () => {
     fetchUser();
   }, []);
 
+  // Get the posts the user should see
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        const response = await axios.get(`${BACKEND_URL}/users/getPostsMainPage`);
+        if (response.status === 200) {
+          console.log(response.data.posts);
+          setPosts(response.data.posts);
+        } else {
+          setPosts([])
+          console.error("Error fetching posts");
+        }
+      } catch (error) {
+        setPosts([]);
+        console.error("Error fetching posts:", error);
+      }
+    }
+
+    fetchPosts();
+  }, []);
 
   return (
     <div>
       <h1>Welcome, {user}!</h1>
+      <h2>Posts</h2>
+      <ul>
+        {posts.map((post, index) => (
+          <div key={index} className="border rounded-md p-2 mb-2">
+            <li>author: {post.username}</li>
+            <li>content: {post.content}</li>
+          </div>
+        ))}
+      </ul>
     </div>
-  )
-
+  );
 }
 
 export default Home

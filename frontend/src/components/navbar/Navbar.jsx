@@ -27,6 +27,12 @@ import Logout from "../auth/Logout";
 export function NavbarWithSearch() {
   const [page, setPage] = useState(<Home />);
 
+  // Go to a specific page when clicked
+  // const goToPage = (component) => {
+  //   setPage(component);
+  // };
+
+
   const pages = [
     { title: "Home", component: <Home />, icon: HomeIcon, path: "/home" },
     { title: "Add/Remove Friends", component: <Friends />, icon: UserPlusIcon, path: "/friends" },

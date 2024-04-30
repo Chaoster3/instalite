@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import Navbar from "./components/navbar/Navbar";
 import Login from "./components/auth/Login";
 import Signup from "./components/auth/Signup";
+import Home from "./Home";
 import "./App.css";
 import axios from "axios";
 
@@ -42,6 +43,7 @@ function App() {
           }
         />
         <Route path="/" element={<Navbar />} />
+        <Route path="/home" element={<Home />} />
       </Routes>
     </Router>
   );

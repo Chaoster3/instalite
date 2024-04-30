@@ -125,11 +125,17 @@ exports.getPostsMainPage = async (req, res) => {
 
   try {
     const yourPosts = await db.send_sql(
-      `SELECT * FROM posts WHERE user_id = ${user_id}`
+      `SELECT users.username AS username, posts.content AS content, posts.image AS image, posts.post_id AS post_id
+      FROM posts
+        JOIN users ON posts.author_id = users.user_id
+      WHERE posts.author_id = ${user_id}`
     );
 
     const friendsPosts = await db.send_sql(
-      `SELECT * FROM posts WHERE user_id IN (SELECT followed FROM friends WHERE follower = ${user_id})`
+      `SELECT users.username AS username, posts.content AS content, posts.image AS image, posts.post_id AS post_id
+      FROM posts
+        JOIN users ON posts.author_id = users.user_id
+      WHERE author_id IN (SELECT followed from friends WHERE follower = ${user_id})`
     );
 
     const posts = yourPosts.concat(friendsPosts);
@@ -232,6 +238,32 @@ exports.searchUserByUsername = async (req, res) => {
     return res
       .status(HTTP_STATUS.SUCCESS)
       .json({ users });
+  } catch (err) {
+    console.log(err);
+    return res
+      .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+      .json({ error: 'Error querying database.' });
+  }
+}
+
+exports.getUsernameFromID = async (req, res) => {
+  const { userId } = req.params;
+
+  if (userId == null) {
+    return res
+      .status(HTTP_STATUS.BAD_REQUEST)
+      .json({ error: 'User id cannot be empty.' });
+  }
+
+  try {
+    const users = await db.send_sql(
+      `SELECT username FROM users WHERE user_id = ${userId}`
+    );
+
+    const user = users[0]
+    return res
+      .status(HTTP_STATUS.SUCCESS)
+      .json({ user });
   } catch (err) {
     console.log(err);
     return res

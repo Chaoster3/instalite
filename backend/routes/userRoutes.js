@@ -24,5 +24,7 @@ router.route('/getPostsMainPage').get(userController.getPostsMainPage);
 router.route('/getPostsProminentFigures').get(userController.getPostsProminentFigures); // TODO: implement this
 router.route('/addFriends').post(userController.addFriends);
 router.route('/removeFriends').post(userController.removeFriends);
+router.route('/getUsernameFromID/:userId').get(userController.getUsernameFromID);
+
 
 module.exports = router;

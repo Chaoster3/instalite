@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { BACKEND_URL } from "./utils/constants";
 import axios from 'axios';
 
 export function Friends() {
@@ -7,7 +8,7 @@ export function Friends() {
   // Get the list of friends from the backend
   const getFriends = async () => {
     try {
-      const response = await axios.get('http://localhost:3000/users/getAllFriends');
+      const response = await axios.get(`${BACKEND_URL}/users/getAllFriends`);
       setFriends(response.data.friends);
     } catch (error) {
       setFriends([]);

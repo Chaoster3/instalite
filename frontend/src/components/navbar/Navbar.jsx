@@ -13,7 +13,8 @@ import {
   UserPlusIcon,
   ChatBubbleLeftRightIcon,
   MagnifyingGlassCircleIcon,
-  HeartIcon
+  HeartIcon,
+  DocumentIcon
 } from "@heroicons/react/24/solid";
 import { Chat } from "../../Chat";
 import { Friends } from "../../Friends";
@@ -30,7 +31,7 @@ export function NavbarWithSearch() {
     { title: "Home", component: <Home />, icon: HomeIcon, path: "/home" },
     { title: "Add/Remove Friends", component: <Friends />, icon: UserPlusIcon, path: "/friends" },
     { title: "Chat", component: <Chat />, icon: ChatBubbleLeftRightIcon, path: "/chat" },
-    { title: "Create Posts", component: <CreatePosts />, icon: HeartIcon, path: "/create_posts" },
+    { title: "Create Posts", component: <CreatePosts />, icon: DocumentIcon, path: "/create_posts" },
     { title: "Logout", component: <Logout />, icon: HeartIcon, path: "/logout"}
   ];
 

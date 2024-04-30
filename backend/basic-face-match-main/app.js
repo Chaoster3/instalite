@@ -53,7 +53,6 @@ async function getEmbeddings(imageFile) {
 
 async function initializeFaceModels() {
   console.log("Initializing FaceAPI...");
-
   await tf.ready();
   await faceapi.nets.ssdMobilenetv1.loadFromDisk('model');
   optionsSSDMobileNet = new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5, maxResults: 1 });
@@ -135,10 +134,10 @@ async function compareImages(file1, file2) {
 
 ////////////////////////
 // Main
-function startChroma() {
+async function startChroma() {
   let collection;
   const client = new ChromaClient();
-  initializeFaceModels()
+  await initializeFaceModels()
     .then(async () => {
 
       collection = await client.getOrCreateCollection({
@@ -174,13 +173,11 @@ function startChroma() {
                 console.log(item.ids[0][i] + " (Euclidean distance = " + Math.sqrt(item.distances[0][i]) + ") in " + item.documents[0][i]);
               }
             }
-
           })
           .catch((err) => {
             console.error("Error indexing images:", err);
           });
       });
-
     });
   return collection;
 };

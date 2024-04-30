@@ -4,5 +4,9 @@
     "port": "3306",
     "database": "pennstagram"
   },
-  "serverPort": "8080"
+  "serverPort": "8080",
+  "groupId": "nets-2120-group-g30",
+  "bootstrapServers": ["localhost:9092"],
+  "twitter_topic": "Twitter-Kafka",
+  "posts_topic": "FederatedPosts"
 }

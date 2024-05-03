@@ -7,3 +7,4 @@ const s3 = new aws.S3({
     region: process.env.S3_REGION
 });
 
+module.exports = s3;

@@ -181,57 +181,57 @@ exports.changeActor = async (req, res) => {
     const { user_id } = req.session;
     const { img_id } = req.body;
 
-  // Update the img_id field in the users table
-  try {
-    // Check if the user exists
-    const user = await db.send_sql(
-      `SELECT * FROM users WHERE user_id = ${user_id}`
-    );
-    if (user.length === 0) {
-      return res
+    // Update the img_id field in the users table
+    try {
+        // Check if the user exists
+        const user = await db.send_sql(
+            `SELECT * FROM users WHERE user_id = ${user_id}`
+        );
+        if (user.length === 0) {
+            return res
         .status(HTTP_STATUS.NOT_FOUND)
         .json({ error: 'User not found.' });
-    }
+        }
 
-    await db.send_sql(
-      `UPDATE users SET img_id = ${img_id} WHERE user_id = ${user_id}`
-    );
-    return res
+        await db.send_sql(
+            `UPDATE users SET img_id = ${img_id} WHERE user_id = ${user_id}`
+        );
+        return res
       .status(HTTP_STATUS.SUCCESS)
       .json({ success: 'Actor changed successfully.' });
-  } catch (err) {
-    console.log(err);
-    return res
+    } catch (err) {
+        console.log(err);
+        return res
       .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
       .json({ error: 'Error querying database.' });
-  }
+    }
 };
 
 exports.getClosest = async (req, res) => {
     const { user_id } = req.session;
 
-  // Find the actor_id associated with the current user
-  try {
-    const actor_id = await db.send_sql(
-      `SELECT actor_id FROM users WHERE user_id = ${user_id}`
-    );
-    if (actor.length === 0) {
-      return res
+    // Find the actor_id associated with the current user
+    try {
+        const actor_id = await db.send_sql(
+            `SELECT actor_id FROM users WHERE user_id = ${user_id}`
+        );
+        if (actor.length === 0) {
+            return res
         .status(HTTP_STATUS.NOT_FOUND)
         .json({ error: 'Actor not found.' });
-    }
+        }
 
-    //// TODO: Find the 5 closest embeddings
-  } catch (err) {
-    console.log(err);
-    return res
+        //// TODO: Find the 5 closest embeddings
+    } catch (err) {
+        console.log(err);
+        return res
       .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
       .json({ error: 'Error querying database.' });
-  }
+    }
 };
 
 exports.uploadProfilePicture = async (req, res) => {
-  const { user_id } = req.session;
+    const { user_id } = req.session;
   const { image_id } = req.body; // I'm assuming we're going to store the link to the image in s3
 
   // Update the img_id field in the users table
@@ -269,11 +269,11 @@ exports.getAllFriends = async (req, res) => {
       .json({ error: 'You must be logged in to view your friends.' });
   }
 
-  try {
-    const friends = await db.send_sql(
-      `SELECT followed FROM friends WHERE follower = ${user_id}`
-    );
-
+    try {
+        const friends = await db.send_sql(
+            `SELECT followed FROM friends WHERE follower = ${user_id}`
+        );
+        
     return res
       .status(HTTP_STATUS.SUCCESS)
       .json({ friends });
@@ -308,12 +308,12 @@ exports.getPostsMainPage = async (req, res) => {
     return res
       .status(HTTP_STATUS.SUCCESS)
       .json({ posts });
-  } catch (err) {
-    console.log(err);
-    return res
+    } catch (err) {
+        console.log(err);
+        return res
       .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
       .json({ error: 'Error querying database.' });
-  }
+    }
 }
 
 exports.getPostsProminentFigures = async (req, res) => {
@@ -347,11 +347,11 @@ exports.addFriends = async (req, res) => {
       .status(HTTP_STATUS.SUCCESS)
       .json({ success: 'Friend added successfully.' });
   } catch (err) {
-    console.log(err);
-    return res
+                    console.log(err);
+                    return res
       .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
       .json({ error: 'Error querying database.' });
-  }
+                }
 }
 
 exports.removeFriends = async (req, res) => {
@@ -373,14 +373,14 @@ exports.removeFriends = async (req, res) => {
   try {
     //// TODO: Might need to go both ways
     await db.send_sql(
-      `DELETE FROM friends WHERE follower = ${user_id} AND followed = ${friend_id}`
+                                    `DELETE FROM friends WHERE follower = ${user_id} AND followed = ${friend_id}`
     );
     return res
       .status(HTTP_STATUS.SUCCESS)
       .json({ success: 'Friend removed successfully.' });
-  } catch (err) {
-    console.log(err);
-    return res
+                    } catch (err) {
+                        console.log(err);
+                        return res
       .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
       .json({ error: 'Error querying database.' });
   }
@@ -394,7 +394,7 @@ exports.searchUserByUsername = async (req, res) => {
       .status(HTTP_STATUS.BAD_REQUEST)
       .json({ error: 'Username cannot be empty.' });
   }
-
+                
   try {
     const users = await db.send_sql(
       `SELECT * FROM users WHERE username = ${username}`
@@ -408,5 +408,5 @@ exports.searchUserByUsername = async (req, res) => {
     return res
       .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
       .json({ error: 'Error querying database.' });
-  }
+}
 }

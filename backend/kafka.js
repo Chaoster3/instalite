@@ -1,13 +1,14 @@
-const { Kafka } = require('kafkajs');
-
+const { Kafka, CompressionTypes, CompressionCodecs } = require('kafkajs')
+const SnappyCodec = require('kafkajs-snappy')
 var config = require('./config.json');
+CompressionCodecs[CompressionTypes.Snappy] = SnappyCodec;
 
 const kafka = new Kafka({
-    clientId: 'g30',
+    clientId: config.groupNumber,
     brokers: config.bootstrapServers
 });
 
-const producer = kafka.producer()
+const producer = kafka.producer();
 const consumer = kafka.consumer({
     groupId: config.groupId,
     bootstrapServers: config.bootstrapServers
@@ -20,7 +21,7 @@ const getTwitterMessages = async () => {
     await consumer.subscribe({ topic: config.twitter_topic, fromBeginning: true });
     await consumer.run({
         eachMessage: async ({ topic, partition, message }) => {
-            kafka_messages.push({
+            twitter_messages.push({
                 value: message.value.toString(),
             });
         },
@@ -55,4 +56,4 @@ const publishPost = async (username, uuid, text, contentType, image) => {
     })
 }
 
-getPosts().then( () => console.log(other_posts));
+getTwitterMessages().then(() => console.log(twitter_messages));

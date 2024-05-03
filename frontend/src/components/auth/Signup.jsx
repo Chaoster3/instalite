@@ -1,5 +1,5 @@
 import axios from 'axios';
-import React, { useState } from 'react';
+import React, { useState, useEffect} from 'react';
 import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import { BACKEND_URL } from "../../utils/constants";
@@ -7,9 +7,6 @@ import { BACKEND_URL } from "../../utils/constants";
 function Signup() {
   const [isFirstPage, setIsFirstPage] = useState(true);
   const [profilePhoto, setProfilePhoto] = useState(null);
-
-  const navigate = useNavigate();
-
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -20,7 +17,41 @@ function Signup() {
     affiliation: '',
     birthday: '',
     linked_nconst: '',
+    // interest: [],
   });
+
+  const navigate = useNavigate();
+
+  // const [searchInput, setSearchInput] = useState('');
+  // useEffect(() => {
+  //   // Fetch existing hashtags based on searchInput
+  //   const fetchHashtags = async () => {
+  //     try {
+  //       const response = await axios.get(`${BACKEND_URL}/hashtags/search?q=${searchInput}`);
+  //       setSearchResults(response.data);
+  //     } catch (error) {
+  //       console.error('Error fetching hashtags:', error);
+  //     }
+  //   };
+
+  //   if (searchInput !== '') {
+  //     fetchHashtags();
+  //   } else {
+  //     setSearchResults([]);
+  //   }
+  // }, [searchInput]);
+
+  // const handleInterestSelect = (interest) => {
+  //   // Add selected interest to formData.interest array
+  //   setFormData((prevFormData) => ({
+  //     ...prevFormData,
+  //     interest: [...prevFormData.interest, interest],
+  //   }));
+
+  //   setSearchInput('');
+  //   setSearchResults([]);
+  // };
+
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -94,6 +125,7 @@ function Signup() {
         affiliation: '',
         birthday: '',
         linked_nconst: '',
+        // interest: [],
       });
     }
   };
@@ -116,7 +148,14 @@ function Signup() {
       placeholder: 'Linked Nconst',
       type: 'text',
     },
+    // {
+    //   name: "interest",
+    //   placeholder: "Interest",
+    //   type: "text"
+    // }
   ];
+
+
 
   return (
     <div className="h-screen w-screen flex justify-center flex-col text-gray-700 w-96 rounded-xl bg-clip-border mx-auto">

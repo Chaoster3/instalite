@@ -294,6 +294,7 @@ exports.getClosest = async (req, res) => {
 };
 
 exports.getAllFriends = async (req, res) => {
+  console.log(req.session.user_id);
   const { user_id } = req.session;
 
   if (user_id == null) {
@@ -302,11 +303,14 @@ exports.getAllFriends = async (req, res) => {
       .json({ error: 'You must be logged in to view your friends.' });
   }
 
-    try {
-        const friends = await db.send_sql(
-            `SELECT followed FROM friends WHERE follower = ${user_id}`
-        );
-        
+  try {
+    const friends = await db.send_sql(
+      `SELECT users.username AS username
+       FROM friends
+        JOIN users ON friends.followed = users.user_id
+       WHERE friends.follower = ${user_id}`
+    );
+
     return res
       .status(HTTP_STATUS.SUCCESS)
       .json({ friends });
@@ -329,11 +333,17 @@ exports.getPostsMainPage = async (req, res) => {
 
   try {
     const yourPosts = await db.send_sql(
-      `SELECT * FROM posts WHERE user_id = ${user_id}`
+      `SELECT users.username AS username, posts.content AS content, posts.image AS image, posts.post_id AS post_id
+      FROM posts
+        JOIN users ON posts.author_id = users.user_id
+      WHERE posts.author_id = ${user_id}`
     );
 
     const friendsPosts = await db.send_sql(
-      `SELECT * FROM posts WHERE user_id IN (SELECT followed FROM friends WHERE follower = ${user_id})`
+      `SELECT users.username AS username, posts.content AS content, posts.image AS image, posts.post_id AS post_id
+      FROM posts
+        JOIN users ON posts.author_id = users.user_id
+      WHERE author_id IN (SELECT followed from friends WHERE follower = ${user_id})`
     );
 
     const posts = yourPosts.concat(friendsPosts);
@@ -427,7 +437,7 @@ exports.searchUserByUsername = async (req, res) => {
       .status(HTTP_STATUS.BAD_REQUEST)
       .json({ error: 'Username cannot be empty.' });
   }
-                
+
   try {
     const users = await db.send_sql(
       `SELECT * FROM users WHERE username = ${username}`
@@ -441,5 +451,31 @@ exports.searchUserByUsername = async (req, res) => {
     return res
       .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
       .json({ error: 'Error querying database.' });
+  }
 }
+
+exports.getUsernameFromID = async (req, res) => {
+  const { userId } = req.params;
+
+  if (userId == null) {
+    return res
+      .status(HTTP_STATUS.BAD_REQUEST)
+      .json({ error: 'User id cannot be empty.' });
+  }
+
+  try {
+    const users = await db.send_sql(
+      `SELECT username FROM users WHERE user_id = ${userId}`
+    );
+
+    const user = users[0]
+    return res
+      .status(HTTP_STATUS.SUCCESS)
+      .json({ user });
+  } catch (err) {
+    console.log(err);
+    return res
+      .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+      .json({ error: 'Error querying database.' });
+  }
 }

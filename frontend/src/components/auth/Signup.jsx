@@ -1,10 +1,14 @@
 import axios from 'axios';
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { BACKEND_URL } from "../../utils/constants";
 
-function Signup({ onSignIn }) {
+function Signup() {
   const [isFirstPage, setIsFirstPage] = useState(true);
   const [profilePhoto, setProfilePhoto] = useState(null);
+
+  const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     username: '',
@@ -18,17 +22,12 @@ function Signup({ onSignIn }) {
     linked_nconst: '',
   });
 
-  const baseURL = 'http://localhost:3001';
-
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prevFormData) => ({
       ...prevFormData,
       [name]: value,
     }));
-
-    // print everything out
-    console.log(formData);
   };
 
   const handleSignup1 = (e) => {
@@ -62,7 +61,6 @@ function Signup({ onSignIn }) {
   };
 
   const handleSignup2 = async (e) => {
-    //TODO: make POST request to /register to sign up
     e.preventDefault();
 
     try {
@@ -77,14 +75,15 @@ function Signup({ onSignIn }) {
       //   },
       // });
 
-      const response = await axios.post(`${baseURL}/users/register`, formData);
+      const response = await axios.post(`${BACKEND_URL}/users/register`, formData);
 
       if (response.status === 201) {
         console.log('Sign Up successful');
-        onSignIn();
+        navigate('/');
       }
     } catch (error) {
       console.log('Sign Up failed');
+      console.log(error);
       setFormData({
         username: '',
         password: '',

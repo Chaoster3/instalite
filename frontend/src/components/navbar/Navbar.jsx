@@ -13,32 +13,34 @@ import {
   UserPlusIcon,
   ChatBubbleLeftRightIcon,
   MagnifyingGlassCircleIcon,
+  HeartIcon,
+  DocumentIcon
 } from "@heroicons/react/24/solid";
-import { Chat } from "./Chat";
-import { Friends } from "./Friends";
-import { Home } from "./Home";
-import { Profile } from "./Profile";
+import { Chat } from "../../Chat";
+import { Friends } from "../../Friends";
+import Home from "../../Home";
+import CreatePosts from "../../CreatePosts";
+import { Profile } from "../../Profile";
+import Logout from "../auth/Logout";
+
 
 export function NavbarWithSearch() {
   const [page, setPage] = useState(<Home />);
 
+  // Go to a specific page when clicked
+  // const goToPage = (component) => {
+  //   setPage(component);
+  // };
+
+
   const pages = [
-    {
-      title: "Home",
-      component: <Home />,
-      icon: HomeIcon,
-    },
-    {
-      title: "Add/Remove Friends",
-      component: <Friends />,
-      icon: UserPlusIcon,
-    },
-    {
-      title: "Chat",
-      component: <Chat />,
-      icon: ChatBubbleLeftRightIcon,
-    },
+    { title: "Home", component: <Home />, icon: HomeIcon, path: "/home" },
+    { title: "Add/Remove Friends", component: <Friends />, icon: UserPlusIcon, path: "/friends" },
+    { title: "Chat", component: <Chat />, icon: ChatBubbleLeftRightIcon, path: "/chat" },
+    { title: "Create Posts", component: <CreatePosts />, icon: DocumentIcon, path: "/create_posts" },
+    { title: "Logout", component: <Logout />, icon: HeartIcon, path: "/logout"}
   ];
+
   return (
     <>
       <div className="mx-auto flex flex-col max-w-screen-xl  overflow-y-auto h-screen">

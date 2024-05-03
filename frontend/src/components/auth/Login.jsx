@@ -1,14 +1,16 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
+import { BACKEND_URL } from "../../utils/constants";
+import { useNavigate } from 'react-router-dom';
 
-function Landing({ onSignIn }) {
+function Login() {
   const [formData, setFormData] = useState({
     username: "",
     password: "",
   });
-
-  const baseURL = "http://localhost:3000";
+  const [loginStatus, setLoginStatus] = useState("");
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -21,13 +23,16 @@ function Landing({ onSignIn }) {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post(`${baseURL}/users/login`, formData);
+      const response = await axios.post(
+        `${BACKEND_URL}/users/login`,
+        formData,
+      );
       if (response.status === 200) {
-        console.log("Log In successful");
-        onSignIn();
+        setLoginStatus("Login successful");
+        navigate('/');
       }
     } catch (error) {
-      console.log("Log In failed");
+      setLoginStatus("Login failed");
       setFormData({
         username: "",
         password: "",
@@ -61,6 +66,7 @@ function Landing({ onSignIn }) {
             </label>
           </div>
         ))}
+        {loginStatus && <p className={loginStatus.includes('successful') ? 'text-green-500' : 'text-red-500'}>{loginStatus}</p>}
       </div>
       <div className="p-6 pt-0">
         <button
@@ -84,4 +90,4 @@ function Landing({ onSignIn }) {
   );
 }
 
-export default Landing;
+export default Login;

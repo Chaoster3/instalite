@@ -127,6 +127,7 @@ exports.login = async function (req, res) {
     } else {
       req.session.user_id = correct[0]['user_id'];
       req.session.username = username;
+      await req.session.save();
       return res.status(HTTP_STATUS.SUCCESS).json({ username: username });
     }
   } catch (err) {
@@ -137,10 +138,11 @@ exports.login = async function (req, res) {
   }
 };
 
-exports.logout = (req, res) => {
+exports.logout = async function (req, res) {
   // TODO: fill in log out logic to disable session info
   req.session.user_id = null;
   req.session.username = null;
+  await req.session.save();
   return res
     .status(HTTP_STATUS.SUCCESS)
     .json({ message: 'You were successfully logged out.' });
@@ -228,4 +230,14 @@ exports.resetPassword = async (req, res) => {
   return res
     .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
     .json({ error: "Haven't implemented." });
+}
+
+
+// Checks if the user is signed in
+exports.checkIfLoggedIn = async (req, res) => {
+  if (req.session && req.session.user_id) {
+    return res.status(HTTP_STATUS.SUCCESS).json({ data: req.session.username });
+  } else {
+    return res.status(HTTP_STATUS.UNAUTHORIZED).json({ data: false });
+  }
 }

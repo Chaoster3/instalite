@@ -23,8 +23,8 @@ app.use((req, res, next) => {
 // Up to here
 
 app.use(express.json());
-app.use(cors());
 app.use('/images', express.static(path.join(__dirname, '/images')));
+app.use(cors({credentials:true, origin: true}));
 
 app.use(session({
   secret: 'nets2120_insecure', saveUninitialized: true, cookie: { httpOnly: false }, resave: true

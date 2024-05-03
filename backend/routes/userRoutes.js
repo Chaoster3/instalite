@@ -5,13 +5,28 @@ const router = express.Router();
 const multer = require('multer');
 const upload = multer({ dest: '/basic-face-match-main/selfies/' });
 
-router.route('/login').post(userController.login);
-router.route('/register').post(userController.register);
-router.route('/logout').get(userController.logout);
-router.route('/changePassowrd').put(userController.changePassword);
-router.route('/changeEmail').put(userController.changeEmail);
-router.route('/getFiveClosestActors').get(userController.getFiveClosestActors);
-router.route('/changeActor').put(userController.changeActor);
-router.route('/getClosest').get(upload.single('image'), userController.getClosest);
+
+// Authentication routes
+router.route('/register').post(authController.register);
+router.route('/login').post(authController.login);
+router.route('/logout').get(authController.logout);
+router.route('/changePassword').put(authController.changePassword);
+router.route('/changeEmail').put(authController.changeEmail);
+router.route('/resetPassword').post(authController.resetPassword);
+router.route('/checkIfLoggedIn').get(authController.checkIfLoggedIn); // returns true if the user is logged in
+
+// User routes
+router.route('/getFiveClosestActors').get(userController.getFiveClosestActors); // need to verify that it works
+router.route('/changeActor').put(userController.changeActor); // need to verify that it works
+router.route('/uploadProfilePicture').put(userController.uploadProfilePicture); // need to verify that it works
+
+// get all the current user's friends
+router.route('/getAllFriends').get(userController.getAllFriends);
+router.route('/getPostsMainPage').get(userController.getPostsMainPage);
+router.route('/getPostsProminentFigures').get(userController.getPostsProminentFigures); // TODO: implement this
+router.route('/addFriends').post(userController.addFriends);
+router.route('/removeFriends').post(userController.removeFriends);
+router.route('/getUsernameFromID/:userId').get(userController.getUsernameFromID);
+
 
 module.exports = router;

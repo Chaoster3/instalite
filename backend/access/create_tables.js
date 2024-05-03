@@ -141,7 +141,17 @@ async function create_tables(db) {
     );'
   );
 
-  return await Promise.all([q0, q1, q2, q3, q4, q5]);
+  // Friend requests table
+  var q6 = db.create_tables(
+    'CREATE TABLE IF NOT EXISTS friend_requests ( \
+      recipient INT, \
+      sender INT, \
+      FOREIGN KEY (recipient) REFERENCES users(user_id), \
+      FOREIGN KEY (sender) REFERENCES users(user_id) \
+    );'
+  );
+
+  return await Promise.all([q0, q1, q2, q3, q4, q5, q6]);
 }
 
 // Database connection setup

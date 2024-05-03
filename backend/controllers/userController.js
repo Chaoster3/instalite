@@ -365,14 +365,103 @@ exports.getPostsProminentFigures = async (req, res) => {
     .json({ error: "Haven't implemented." });
 }
 
-exports.addFriends = async (req, res) => {
+exports.sendFriendRequest = async (req, res) => {
+    const { user_id } = req.session;
+    const { friend_id } = req.body;
+
+    if (user_id == null) {
+        return res
+            .status(HTTP_STATUS.UNAUTHORIZED)
+            .json({ error: 'You must be logged in to send a friend request.' });
+    }
+
+    if (friend_id == null) {
+        return res
+            .status(HTTP_STATUS.BAD_REQUEST)
+            .json({ error: 'Friend id cannot be empty.' });
+    }
+
+    try {
+        const p1 = await db.send_sql(
+            `SELECT * FROM friends WHERE follower = ${user_id} AND followed = ${friend_id}`
+        );
+        const p2 = await db.send_sql(
+            `SELECT * FROM friend_requests WHERE sender = ${user_id} AND recipient = ${friend_id}`
+        );
+        [check1, check2] = await Promise.all([p1, p2]);
+        if (check1.length > 0) {
+            return res
+                .status(HTTP_STATUS.CONFLICT)
+                .json({ error: 'You are already friends with this user.' });
+        }
+        if (check2.length > 0) {
+            await db.send_sql(
+                `INSERT INTO friend_requests (recipient, sender) VALUES (${friend_id}, ${user_id})`
+            );
+            return res
+                .status(HTTP_STATUS.SUCCESS)
+                .json({ success: 'Friend added successfully.' });
+        } else {
+            return res
+                .status(HTTP_STATUS.CONFLICT)
+                .json({ error: 'A friend request to this user is already pending.' });
+        }
+    } catch (err) {
+        console.log(err);
+        return res
+            .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+            .json({ error: 'Error querying database.' });
+    }
+}
+
+exports.declineRequest = async (req, res) => {
+    const { user_id } = req.session;
+    const { sender_id } = req.body;
+
+    if (user_id == null) {
+        return res
+            .status(HTTP_STATUS.UNAUTHORIZED)
+            .json({ error: 'You must be logged in to send a friend request.' });
+    }
+
+    if (sender == null) {
+        return res
+            .status(HTTP_STATUS.BAD_REQUEST)
+            .json({ error: 'Sender cannot be empty.' });
+    }
+
+    try {
+        const check = await db.send_sql(
+            `SELECT * FROM friend_requests WHERE sender = ${sender_id} AND recipient = ${user_id}`
+        );
+        if (check.length == 0) {
+            return res
+                .status(HTTP_STATUS.BAD_REQUEST)
+                .json({ error: 'Attempting to decline a request that does not exist.' });
+        } else {
+            await db.send_sql(
+                `DELETE FROM friend_requests WHERE sender = ${sender_id} AND recipient = ${user_id}` 
+            );
+            return res
+                .status(HTTP_STATUS.SUCCESS)
+                .json({ success: 'Friend request declined successfully.' });
+        }
+    } catch (err) {
+        console.log(err);
+        return res
+            .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+            .json({ error: 'Error querying database.' });
+    }
+}
+
+exports.acceptRequest = async (req, res) => {
   const { user_id } = req.session;
   const { friend_id } = req.body;
 
   if (user_id == null) {
     return res
       .status(HTTP_STATUS.UNAUTHORIZED)
-      .json({ error: 'You must be logged in to add a friend.' });
+      .json({ error: 'You must be logged in to send a friend.' });
   }
 
   if (friend_id == null) {
@@ -382,19 +471,31 @@ exports.addFriends = async (req, res) => {
   }
 
   try {
-    //// TODO: Might need to go both ways
-    await db.send_sql(
-      `INSERT INTO friends (follower, followed) VALUES (${user_id}, ${friend_id})`
+    const check = await db.send_sql(
+        `SELECT * FROM friend_requests WHERE sender = ${friend_id} AND recipient = ${user_id}`
     );
-    return res
-      .status(HTTP_STATUS.SUCCESS)
-      .json({ success: 'Friend added successfully.' });
+    if (check.length > 0) {
+        const p1 =  db.send_sql(
+            `INSERT INTO friends (follower, followed) VALUES (${user_id}, ${friend_id}), (${friend_id}, ${user_id})`
+        );
+        const p2 = db.send_sql(
+            `DELETE FROM friend_requests WHERE (sender = ${friend_id} AND recipient = ${user_id}) OR (sender = ${user_id} AND recipient = ${friend_id})`
+        );
+        await Promise.all([p1, p2]);
+        return res
+            .status(HTTP_STATUS.SUCCESS)
+            .json({ success: 'Friend added successfully.' });
+    } else {
+        return res
+            .status(HTTP_STATUS.UNAUTHORIZED)
+            .json({ error: 'You can only add friends you have recieved friend requests from.' });
+    }
   } catch (err) {
-                    console.log(err);
-                    return res
+    console.log(err);
+    return res
       .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
       .json({ error: 'Error querying database.' });
-                }
+  }
 }
 
 exports.removeFriends = async (req, res) => {
@@ -416,14 +517,14 @@ exports.removeFriends = async (req, res) => {
   try {
     //// TODO: Might need to go both ways
     await db.send_sql(
-                                    `DELETE FROM friends WHERE follower = ${user_id} AND followed = ${friend_id}`
+      `DELETE FROM friends WHERE follower = ${user_id} AND followed = ${friend_id}`
     );
     return res
       .status(HTTP_STATUS.SUCCESS)
       .json({ success: 'Friend removed successfully.' });
-                    } catch (err) {
-                        console.log(err);
-                        return res
+  } catch (err) {
+    console.log(err);
+    return res
       .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
       .json({ error: 'Error querying database.' });
   }

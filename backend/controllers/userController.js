@@ -207,58 +207,91 @@ exports.changeActor = async (req, res) => {
     }
 };
 
+const s3 = new aws.S3({
+    region: process.env.S3_REGION
+});
+
+// Note: Stores selfie in S3 and then returns 5 closest actors
 exports.getClosest = async (req, res) => {
-    const { user_id } = req.session;
-
-    // Find the actor_id associated with the current user
+    const {
+        username,
+        password,
+        firstName,
+        lastName,
+        email,
+        affiliation,
+        birthday,
+    } = req.body;
+    if (
+        username == null ||
+        password == null ||
+        firstName == null ||
+        lastName == null ||
+        email == null ||
+        affiliation == null ||
+        birthday == null
+    ) {
+        return res.status(400).json({
+            error:
+                'One or more of the fields you entered was empty, please try again.',
+        });
+    }
     try {
-        const actor_id = await db.send_sql(
-            `SELECT actor_id FROM users WHERE user_id = ${user_id}`
+        const existing = await db.send_sql(
+            `SELECT * FROM users WHERE username = '${username}'`
         );
-        if (actor.length === 0) {
-            return res
-        .status(HTTP_STATUS.NOT_FOUND)
-        .json({ error: 'Actor not found.' });
+        if (existing.length > 0) {
+            return res.status(409).json({
+                error:
+                    'An account with this username already exists, please try again.',
+            });
         }
-
-        //// TODO: Find the 5 closest embeddings
     } catch (err) {
         console.log(err);
-        return res
-      .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
-      .json({ error: 'Error querying database.' });
+        return res.status(500).json({ error: 'Error querying database' });
     }
+
+    const file = req.file;
+    fs.readFile(file.path, (err, data) => {
+        if (err) {
+            console.error('Error reading file:', err);
+            return res.status(500).send('Error uploading file');
+        } else {
+            console.log(file.path);
+            const params = {
+                Bucket: process.env.S3_BUCKET,
+                Key: username,
+                Body: data
+            };
+            const responseData = {};
+            // Upload the file to S3
+            s3.upload(params, async (err, s3Data) => {
+                if (err) {
+                    console.error('Error uploading to S3:', err);
+                    return res.status(500).send('Error uploading file');
+                } else {
+                    responseData.uri = s3Data.Location;
+                    try {
+                        for (var item of await chroma.findTopKMatches(req.collection, file.path, 5)) {
+                            for (var i = 0; i < item.ids[0].length; i++) {
+                                console.log(item.documents[0][i].slice(0, -3));
+                                const name = await db.send_sql(
+                                    `SELECT primaryName FROM names WHERE nconst = '${item.documents[0][i].slice(0, -4)}'`
+                                );
+                                console.log(name);
+                                responseData[i] = [name[0]['primaryName'], item.documents[0][i]];
+                            }
+                        }
+                        return res.status(200).json(responseData);
+                    } catch (err) {
+                        console.log(err);
+                        return res.status(500).json({ error: 'Error with ChromaDB' });
+                    }
+                }
+            });
+        }
+    });
 };
-
-exports.uploadProfilePicture = async (req, res) => {
-    const { user_id } = req.session;
-  const { image_id } = req.body; // I'm assuming we're going to store the link to the image in s3
-
-  // Update the img_id field in the users table
-  try {
-    // Check if the user exists
-    const user = await db.send_sql(
-      `SELECT * FROM users WHERE user_id = ${user_id}`
-    );
-    if (user.length === 0) {
-      return res
-        .status(HTTP_STATUS.NOT_FOUND)
-        .json({ error: 'User not found.' });
-    }
-
-    await db.send_sql(
-      `UPDATE users SET image_id = ${image_id} WHERE user_id = ${user_id}`
-    );
-    return res
-      .status(HTTP_STATUS.SUCCESS)
-      .json({ success: 'Profile picture uploaded successfully.' });
-  } catch (err) {
-    console.log(err);
-    return res
-      .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
-      .json({ error: 'Error querying database.' });
-  }
-}
 
 exports.getAllFriends = async (req, res) => {
   const { user_id } = req.session;

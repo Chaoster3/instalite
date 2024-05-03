@@ -13,20 +13,18 @@ const session = require('express-session');
 
 let collection;
 
+// Comment this out while testing
 chroma.startChroma().then(col => collection = col);
-
-console.log('bbadfbsdfbsdfbsdf');
-console.log(collection);
 
 app.use((req, res, next) => {
     req.collection = collection;
-    console.log(collection);
     next();
 });
+// Up to here
 
 app.use(express.json());
 app.use(cors());
-app.use('/images', express.static(path.join(__dirname, 'basic-face-match-main/images')));
+app.use('/images', express.static(path.join(__dirname, '/images')));
 
 app.use(session({
   secret: 'nets2120_insecure', saveUninitialized: true, cookie: { httpOnly: false }, resave: true

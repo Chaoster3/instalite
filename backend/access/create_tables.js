@@ -151,6 +151,40 @@ async function create_tables(db) {
     );'
   );
 
+  // chat session table
+  var q7 = db.create_tables(
+    `CREATE TABLE IF NOT EXISTS chat_sessions (
+      session_id INT AUTO_INCREMENT PRIMARY KEY,
+      session_name VARCHAR(255) DEFAULT 'Unnamed Session'
+   );`
+  );
+
+  // messages table
+  var q8 = db.create_tables(
+    `CREATE TABLE IF NOT EXISTS chat_messages (
+      message_id INT AUTO_INCREMENT PRIMARY KEY,
+      session_id INT,
+      sender_id INT,
+      message TEXT,
+      timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(session_id) REFERENCES chat_sessions(session_id),
+      FOREIGN KEY(sender_id) REFERENCES users(user_id)
+    );`
+  );
+
+  // session membership table
+  var q9 = db.create_tables(
+    `CREATE TABLE IF NOT EXISTS session_memberships (
+      session_id INT,
+      user_id INT,
+      is_active BOOLEAN DEFAULT TRUE,
+      FOREIGN KEY (session_id) REFERENCES chat_sessions(session_id),
+      FOREIGN KEY (user_id) REFERENCES users(user_id),
+      PRIMARY KEY (session_id, user_id)
+    );`
+  );
+
+
   return await Promise.all([q0, q1, q2, q3, q4, q5, q6]);
 }
 

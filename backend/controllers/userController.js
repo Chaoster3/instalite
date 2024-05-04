@@ -125,20 +125,33 @@ exports.getPostsMainPage = async (req, res) => {
 
   try {
     const yourPosts = await db.send_sql(
-      `SELECT users.username AS username, posts.content AS content, posts.image AS image, posts.post_id AS post_id
+      `SELECT users.username AS username, posts.content AS content, posts.image AS image, posts.post_id AS post_id, posts.hashtag_ids AS hashtag_ids
       FROM posts
         JOIN users ON posts.author_id = users.user_id
       WHERE posts.author_id = ${user_id}`
     );
 
     const friendsPosts = await db.send_sql(
-      `SELECT users.username AS username, posts.content AS content, posts.image AS image, posts.post_id AS post_id
+      `SELECT users.username AS username, posts.content AS content, posts.image AS image, posts.post_id AS post_id, posts.hashtag_ids AS hashtag_ids
       FROM posts
         JOIN users ON posts.author_id = users.user_id
       WHERE author_id IN (SELECT followed from friends WHERE follower = ${user_id})`
     );
 
     const posts = yourPosts.concat(friendsPosts);
+
+    // Convert each post's hashtag_ids into hashtag_names
+    for (let i = 0; i < posts.length; i++) {
+      const hashtag_ids = posts[i].hashtag_ids.split(',');
+      const hashtag_names = [];
+      for (let j = 0; j < hashtag_ids.length; j++) {
+        const hashtag = await db.send_sql(
+          `SELECT name FROM hashtags WHERE hashtag_id = ${hashtag_ids[j]}`
+        );
+        hashtag_names.push(hashtag[0].name);
+      }
+      posts[i].hashtag_names = hashtag_names;
+    }
 
     return res
       .status(HTTP_STATUS.SUCCESS)

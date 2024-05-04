@@ -8,7 +8,7 @@ const CreatePosts = () => {
   const [form, setForm] = useState({
     // image: "",
     content: "",
-    hashtags: [],
+    hashtag_names: [],
   });
   const [formStatus, setFormStatus] = useState("");
 
@@ -29,6 +29,13 @@ const CreatePosts = () => {
   };
 
   const handleSubmit = async (e) => {
+    // const finalTagsNames = finalTags.map(tag => tag.name);
+    // setForm(prevForm => ({
+    //   ...prevForm,
+    //   hashtags: finalTagsNames
+    // }));
+
+    console.log("submitted form", form)
     e.preventDefault();
     try {
       const response = await axios.post(
@@ -96,7 +103,11 @@ const CreatePosts = () => {
 
       if (response.status === 201) {
         setNewTagInput('');
-        setFinalTags([...finalTags, response.data]);
+        setForm(prevForm => ({
+          ...prevForm,
+          hashtag_names: [...prevForm.hashtag_names, response.data.name]
+        }));
+        // setFinalTags([...finalTags, response.data]);
       } else if (response.status === 400) {
         setErrorMessage('Tag already exists.');
       } else {
@@ -113,16 +124,27 @@ const CreatePosts = () => {
 
   const addSearchedTagToFinal = (tag) => {
     // Check if the tag is already in the finalTags array
-    const isTagInFinalTags = finalTags.some(finalTag => finalTag.name === tag.name);
-
-    if (!isTagInFinalTags) {
-      setFinalTags([...finalTags, { id: tag.id, name: tag.name }]);
+    // const isTagInFinalTags = finalTags.some(finalTag => finalTag.name === tag.name);
+    const isTagInForm = form.hashtag_names.includes(tag.name);
+    if (!isTagInForm) {
+      setForm(prevForm => ({
+        ...prevForm,
+        hashtag_names: [...prevForm.hashtag_names, tag.name]
+      }));
     }
+
+    // if (!isTagInFinalTags) {
+    //   setFinalTags([...finalTags, { id: tag.id, name: tag.name }]);
+    // }
   };
 
   // Function to remove a final tag from the finalTags array
   const removeFinalTag = (tagName) => {
-    setFinalTags(finalTags.filter(tag => tag.name !== tagName));
+    // setFinalTags(finalTags.filter(tag => tag.name !== tagName));
+    setForm(prevForm => ({
+      ...prevForm,
+      hashtag_names: prevForm.hashtag_names.filter(tag => tag !== tagName)
+    }));
   };
 
 
@@ -189,12 +211,12 @@ const CreatePosts = () => {
         <br></br>
         <div>
           <h2>Final Tags</h2>
-          {finalTags.map((tag) => (
+          {form.hashtag_names.map((tagName) => (
             <button
-              key={tag.id}
-              onClick={() => removeFinalTag(tag.name)}
+              key={tagName}
+              onClick={() => removeFinalTag(tagName)}
             >
-              {tag.name}
+              {tagName}
             </button>
           ))}
         </div>

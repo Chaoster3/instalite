@@ -3,8 +3,7 @@ const HTTP_STATUS = require('../utils/httpStatus');
 const db = dbsingleton;
 
 exports.createPost = async (req, res) => {
-  const { image, content, hashtags } = req.body;
-  const hashtag_names = hashtags;
+  const { image, content, hashtag_names } = req.body;
 
   // Check if user is logged in
   if (req.session.user_id == null) {
@@ -34,6 +33,8 @@ exports.createPost = async (req, res) => {
       }
       hashtag_ids.push(hashtag[0].hashtag_id);
     }
+
+    console.log(hashtag_ids);
 
     await db.send_sql(
       `INSERT INTO posts (author_id, image, content, hashtag_ids) VALUES ('${req.session.user_id}', '${image}', '${content}', '${hashtag_ids}')`

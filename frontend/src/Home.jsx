@@ -60,6 +60,9 @@ const Home = () => {
           <div key={index} className="border rounded-md p-2 mb-2">
             <li>author: {post.username}</li>
             <li>content: {post.content}</li>
+            {post.hashtag_names.map((hashtag, index) => (
+              <li key={index}>hashtag: {hashtag}</li>
+            ))}
           </div>
         ))}
       </ul>

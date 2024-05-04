@@ -119,12 +119,12 @@ async function create_tables(db) {
       content VARCHAR(255), \
       image VARCHAR(255), \
       hashtag_ids VARCHAR(255), \
+      user_ids_who_liked VARCHAR(255), \
       PRIMARY KEY(post_id), \
       FOREIGN KEY(author_id) REFERENCES users(user_id) \
     );'
   );
 
-  //      hashtag_ids INT, \
 
   // Comments table
   var q5 = db.create_tables(

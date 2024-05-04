@@ -106,9 +106,7 @@ const ChangeTag = () => {
         const response = await axios.get(`${BACKEND_URL}/tags/findTopTenTags`);
 
         if (response.status === 200) {
-          const tagNames = response.data.map(tag => tag.name);
           setTopTenTagsNames(response.data);
-          // console.log('Top ten tags:', topTenTagsNames)
         } else {
           setErrorMessage('Error getting tags suggestions. Please try again later.');
         }

@@ -4,6 +4,176 @@ import org.apache.spark.graphx.Edge;
 import java.util.Properties;
 
 public class SparkJob {
+    static JavaPairRDD<String, Map<String, Double>> vertices(Dataset<Row> hashtags, Dataset<Row> posts,
+            Dataset<Row> users) {
+        JavaPairRDD<String, Map<String, Double>> vertices = hashtags.selectExpr("concat('hash', hashtag_id) AS id")
+                .union(posts.selectExpr("concat('post', post_id) AS id"))
+                .union(users.selectExpr("concat('user', user_id) AS id"))
+                .union(users.selectExpr("concat('shadow', user_id) AS id")).toJavaRDD().map(row -> row.getAs("id"))
+                .mapToPair(id -> {
+                    if (id.startsWith("shadow")) {
+                        return new Tuple2<>(id, new HashMap<String, Double>() {
+                            {
+                                put(id.substring(6), 1.0);
+                            }
+                        });
+                    } else {
+                        return new Tuple2<>(id, new HashMap<String, Double>());
+                    }
+                });
+        return vertices;
+    }
+
+    static JavaPairRDD<String, Tuple2<String, Double>> edges(Dataset<Row> hashtags, Dataset<Row> posts,
+            Dataset<Row> users,
+            Dataset<Row> friends) {
+        JavaPairRDD<String, String> user_edges = users.toJavaRDD().flatMap(row -> {
+            long user_id = row.getAs("user_id");
+            String user_id_str = "user" + user_id;
+            String hashtags = row.getAs("interests");
+
+            List<Tuple2<String, String>> edges = new ArrayList<>();
+            for (String hashtag : hashtags.substring(1, hashtags.length() - 1).split(",")) {
+                edges.add(new Tuple2<>(user_id_str, "hash" + hashtag));
+                edges.add(new Tuple2<>("hash" + hashtag, user_id_str));
+            }
+            return edges.iterator();
+        });
+
+        JavaPairRDD<String, String> hash_post_edges = posts.flatMap(row -> {
+            long post_id = row.getAs("post_id");
+            String post_id_str = "post" + post_id;
+            String hashtags = row.getAs("interests");
+            String likes = row.getAs("likes");
+
+            List<Tuple2<String, String>> edges = new ArrayList<>();
+            for (String hashtag : hashtags.substring(1, hashtags.length() - 1).split(",")) {
+                edges.add(new Tuple2<>("hash" + hashtag, post_id_str));
+                edges.add(new Tuple2<>(post_id_str, "hash" + hashtag));
+            }
+            for (String like : likes.substring(1, likes.length() - 1).split(",")) {
+                edges.add(new Tuple2<>("user" + like, post_id_str));
+                edges.add(new Tuple2<>(post_id_str, "user" + like));
+            }
+            return edges.iterator();
+        });
+
+        JavaPairRDD<String, String> user_user_edges = friends.flatMap(row -> {
+            long user_id1 = row.getAs("follower");
+            long user_id2 = row.getAs("followed");
+            String user_id1_str = "user" + user_id1;
+            String user_id2_str = "user" + user_id2;
+
+            List<Tuple2<String, String>> edges = new ArrayList<>();
+            edges.add(new Tuple2<>(user_id1_str, user_id2_str));
+            edges.add(new Tuple2<>(user_id2_str, user_id1_str));
+            return edges.iterator();
+        });
+
+        JavaPairRDD<String, String> edges = user_edges.union(hash_post_edges).union(user_user_edges);
+        JavaPairRDD<String, Tuple2<String, Double>> weighted_edges = edges.groupByKey().flatMapToPair(edge -> {
+            String src = edge._1();
+            List<Tuple2<String, Tuple2<String, Double>>> weighted_edges = new ArrayList<>();
+            List<String> dsts = edge._2().toList();
+            if (src.startsWith("user")) {
+                List<String> hash_dsts = dsts.stream().filter(dst -> dst.startsWith("hash"))
+                        .collect(Collectors.toList());
+                List<String> user_dsts = dsts.stream().filter(dst -> dst.startsWith("user"))
+                        .collect(Collectors.toList());
+                List<String> post_dsts = dsts.stream().filter(dst -> dst.startsWith("post"))
+                        .collect(Collectors.toList());
+                for (String hash_dst : hash_dsts) {
+                    weighted_edges.add(new Tuple2<>(src, new Tuple2<>(hash_dst, 0.3 / hash_dsts.size())));
+                }
+                for (String user_dst : user_dsts) {
+                    weighted_edges.add(new Tuple2<>(src, new Tuple2<>(user_dst, 0.3 / user_dsts.size())));
+                }
+                for (String post_dst : post_dsts) {
+                    weighted_edges.add(new Tuple2<>(src, new Tuple2<>(post_dst, 0.4 / post_dsts.size())));
+                }
+            } else if (src.startsWith("hash")) {
+                for (String dst : dsts) {
+                    weighted_edges.add(new Tuple2<>(src, new Tuple2<>(dst, 1.0 / dsts.size())));
+                }
+            } else {
+                for (String dst : dsts) {
+                    weighted_edges.add(new Tuple2<>(src, new Tuple2<>(dst, 1.0 / dsts.size())));
+                }
+            }
+        });
+        return weighted_edges;
+    }
+
+    static JavaPairRDD<String, Map<String, Double>> adsorption(JavaPairRDD<String, Map<String, Double>> vertices,
+            JavaPairRDD<String, Tuple2<String, Double>> user_edges) {
+        int iteration = 0;
+        while (true || iteration++ < 15) {
+            JavaPairRDD<String, Map<String, Double>> new_vertices = user_edges.join(vertices).mapToPair(edge -> {
+                String v = edge._2()._1()._1();
+                Tuple2<String, Double> edge_weight = edge._2()._1()._2();
+                Map<String, Double> L_u = edge._2()._2();
+                Map<String, Double> u_contribution = L_u.entrySet().stream().map(entry -> {
+                    String label = entry.getKey();
+                    double weight = entry.getValue();
+                    return new Tuple2<>(label, weight * edge_weight);
+                }).collect(Collectors.toMap(Tuple2::_1, Tuple2::_2));
+                return new Tuple2<>(v, u_contribution);
+            }).reduceByKey((u1, u2) -> {
+                Map<String, Double> u = new HashMap<>();
+                for (Map.Entry<String, Double> entry : u1.entrySet()) {
+                    u.put(entry.getKey(), u.getOrDefault(entry.getKey(), 0.0) + entry.getValue());
+                }
+                for (Map.Entry<String, Double> entry : u2.entrySet()) {
+                    u.put(entry.getKey(), u.getOrDefault(entry.getKey(), 0.0) + entry.getValue());
+                }
+                return u;
+            }).mapValues(u -> {
+                double sum = u.values().stream().mapToDouble(Double::doubleValue).sum();
+                return u.entrySet().stream().map(entry -> {
+                    String label = entry.getKey();
+                    double weight = entry.getValue();
+                    return new Tuple2<>(label, weight / sum);
+                }).collect(Collectors.toMap(Tuple2::_1, Tuple2::_2));
+            });
+            vertices = new_vertices;
+        }
+        JavaPairRDD<String, Map<String, Double>> user_distributions = vertices.flatMapToPair(vertex -> {
+            if (!vertex._1().startsWith("post")) {
+                return Collections.emptyIterator();
+            }
+            String post = vertex._1().substring(4);
+            Map<String, Double> L_v = vertex._2();
+            List<Tuple2<String, Map<String, Double>>> user_distributions = new ArrayList<>();
+            for (Map.Entry<String, Double> entry : L_v.entrySet()) {
+                String user = entry.getKey();
+                double weight = entry.getValue();
+                user_distributions.add(new Tuple2<>(user, new HashMap<String, Double>() {
+                    {
+                        put(post, weight);
+                    }
+                }));
+            }
+            return user_distributions.iterator();
+        }).reduceByKey((u1, u2) -> {
+            Map<String, Double> u = new HashMap<>();
+            for (Map.Entry<String, Double> entry : u1.entrySet()) {
+                u.put(entry.getKey(), u.getOrDefault(entry.getKey(), 0.0) + entry.getValue());
+            }
+            for (Map.Entry<String, Double> entry : u2.entrySet()) {
+                u.put(entry.getKey(), u.getOrDefault(entry.getKey(), 0.0) + entry.getValue());
+            }
+            return u;
+        }).mapValues(u -> {
+            double sum = u.values().stream().mapToDouble(Double::doubleValue).sum();
+            return u.entrySet().stream().map(entry -> {
+                String post = entry.getKey();
+                double weight = entry.getValue();
+                return new Tuple2<>(post, weight / sum);
+            }).collect(Collectors.toMap(Tuple2::_1, Tuple2::_2));
+        });
+        return user_distributions;
+    }
+
     public static void main(String[] args) {
         SparkSession spark = SparkSession.builder()
                 .appName("SparkJob")
@@ -22,91 +192,30 @@ public class SparkJob {
         Dataset<Row> posts = spark.read().jdbc(url, "posts", connectionProperties);
         Dataset<Row> users = spark.read().jdbc(url, "users", connectionProperties);
         Dataset<Row> friends = spark.read().jdbc(url, "friends", connectionProperties);
-        
-        // Create vertices from hashtags, posts, and users
-        Dataset<Tuple2<String, String>> vertices = hashtags.selectExpr("concat('hash', hashtag_id) AS id")
-                .union(posts.selectExpr("concat('post', post_id) AS id"))
-                .union(users.selectExpr("concat('user', user_id) AS id"))
-                .as(Encoders.tuple(Encoders.STRING(), Encoders.STRING()));
 
-        Dataset<Tuple2<String, String>> user_edges = users.flatMap(row -> {
-            long user_id = row.getAs("user_id");
-            String user_id_str = "user" + user_id;
-            String hashtags = row.getAs("interests");
-        
-            List<Tuple2<String, String>> edges = new ArrayList<>();
-            for (String hashtag : hashtags.substring(1, hashtags.length() - 1).split(",")){
-                edges.add(new Tuple2<>(user_id_str, "hash" + hashtag));
-                edges.add(new Tuple2<>("hash" + hashtag, user_id_str));
-            }
-            return edges.iterator();
-        }, Encoders.tuple(Encoders.STRING(), Encoders.STRING()));
+        JavaPairRDD<String, Map<String, Double>> vertices = vertices(hashtags, posts, users);
 
-        Dataset<Tuple2<String, String>> hash_post_edges = posts.flatMap(row -> {
-            long post_id = row.getAs("post_id");
-            String post_id_str = "post" + post_id;
-            String hashtags = row.getAs("interests");
-            String likes = row.getAs("likes");
-        
-            List<Tuple2<String, String>> edges = new ArrayList<>();
-            for (String hashtag : hashtags.substring(1, hashtags.length() - 1).split(",")){
-                edges.add(new Tuple2<>("hash" + hashtag, post_id_str));
-                edges.add(new Tuple2<>(post_id_str, "hash" + hashtag));
-            }
-            for (String like : likes.substring(1, likes.length() - 1).split(",")){
-                edges.add(new Tuple2<>("user" + like, post_id_str));
-                edges.add(new Tuple2<>(post_id_str, "user" + like));
-            }
-            return edges.iterator();
-        }, Encoders.tuple(Encoders.STRING(), Encoders.STRING()));
+        JavaPairRDD<String, Tuple2<String, Double>> user_edges = edges(hashtags, posts, users, friends);
 
-        Dataset<Tuple2<String, String>> user_user_edges = friends.flatMap(row -> {
-            long user_id1 = row.getAs("follower");
-            long user_id2 = row.getAs("followed");
-            String user_id1_str = "user" + user_id1;
-            String user_id2_str = "user" + user_id2;
-        
-            List<Tuple2<String, String>> edges = new ArrayList<>();
-            edges.add(new Tuple2<>(user_id1_str, user_id2_str));
-            edges.add(new Tuple2<>(user_id2_str, user_id1_str));
-            return edges.iterator();
-        }, Encoders.tuple(Encoders.STRING(), Encoders.STRING()));
-
-        // Create edges
-        Dataset<Edge<Tuple2<Object, Object>>> edges = spark.createDataset(Arrays.asList(
-                new Edge<>(1L, 4L, new Tuple2<>(0.3, "Interest")),   // (User1, Hashtag1)
-                new Edge<>(4L, 1L, new Tuple2<>(0.3, "Interest")),   // (Hashtag1, User1)
-                new Edge<>(4L, 5L, new Tuple2<>(1.0, "Associated")), // (Hashtag1, Post1)
-                new Edge<>(5L, 4L, new Tuple2<>(1.0, "Associated")), // (Post1, Hashtag1)
-                new Edge<>(1L, 5L, new Tuple2<>(0.4, "Liked")),      // (User1, Post1)
-                new Edge<>(5L, 1L, new Tuple2<>(0.4, "Liked")),      // (Post1, User1)
-                new Edge<>(1L, 2L, new Tuple2<>(0.3, "Friend")),     // (User1, User2)
-                new Edge<>(2L, 1L, new Tuple2<>(0.3, "Friend"))      // (User2, User1)
-        ), Encoders.bean(Edge.class));
-
-        // Build the graph
-        Graph<Tuple2<Object, Object>, Tuple2<Double, String>> graph = Graph.apply(vertices.rdd(),
-                edges.rdd(),
-                new Tuple2<>(null, null));
-
-        // Assign weights
-        Graph<Tuple2<Object, Object>, Tuple2<Double, String>> weightedGraph = graph.mapTriplets(triplet -> {
-            double weight = triplet.attr()._1();
-            String edgeType = triplet.attr()._2();
-            // Adjust weights based on edge type
-            if (edgeType.equals("Interest") || edgeType.equals("Friend")) {
-                weight *= 0.3; // Scale down weights
-            } else if (edgeType.equals("Liked")) {
-                weight *= 0.4; // Scale down weights
-            }
-            return new Tuple2<>(weight, edgeType);
-        });
-        // Perform transformations
-        Dataset<Row> transformedDF = df.select("hashtag_id", "name", "count").filter("count > 100");
+        JavaPairRDD<String, Map<String, Double>> user_distributions = adsorption(vertices, user_edges);
 
         // Write data back to RDS
-        transformedDF.write().jdbc(url, "hashtags_transformed", connectionProperties);
+        userDistributions.foreach(tuple -> {
+            String userId = tuple._1;
+            Map<String, Double> rankDistribution = tuple._2;
 
+            byte[] serializedRankDistribution = serializeObject(rankDistribution);
+
+            try (Connection conn = DriverManager.getConnection(url, user, password)) {
+                String updateQuery = "UPDATE users SET rank_distribution = ? WHERE user_id = ?";
+                PreparedStatement preparedStatement = conn.prepareStatement(updateQuery);
+                preparedStatement.setBytes(1, serializedRankDistribution);
+                preparedStatement.setString(2, userId);
+                preparedStatement.executeUpdate();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        });
         // Send data to Livy via API (assuming LivyClient is set up)
         LivyClient livyClient = new LivyClientBuilder().setURI("http://your-livy-host:8998").build();
         String code = "print('Data processed successfully')";
@@ -114,5 +223,20 @@ public class SparkJob {
         livyClient.stop(true);
 
         spark.stop();
+    }
+    private static byte[] serializeObject(Object obj) {
+        try {
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            ObjectOutputStream oos = new ObjectOutputStream(bos);
+            oos.writeObject(obj);
+            oos.flush();
+            byte[] bytes = bos.toByteArray();
+            bos.close();
+            oos.close();
+            return bytes;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 }

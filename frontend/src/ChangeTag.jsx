@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { BACKEND_URL } from "./utils/constants";
 
@@ -9,6 +9,7 @@ const ChangeTag = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [finalTags, setFinalTags] = useState([]);
+  const [topTenTagsNames, setTopTenTagsNames] = useState([]);
 
 
   // Function to handle search input change
@@ -97,10 +98,46 @@ const ChangeTag = () => {
     setFinalTags(finalTags.filter(tag => tag.name !== tagName));
   };
 
+  useEffect(() => {
+    const getTagsSuggestions = async () => {
+      try {
+        setErrorMessage('');
 
+        const response = await axios.get(`${BACKEND_URL}/tags/findTopTenTags`);
+
+        if (response.status === 200) {
+          const tagNames = response.data.map(tag => tag.name);
+          setTopTenTagsNames(response.data);
+          // console.log('Top ten tags:', topTenTagsNames)
+        } else {
+          setErrorMessage('Error getting tags suggestions. Please try again later.');
+        }
+      } catch (error) {
+        console.error('Error getting tags suggestions:', error);
+        setErrorMessage('Error getting tags suggestions. Please try again later.');
+      }
+    };
+
+    getTagsSuggestions();
+
+  }, []);
 
   return (
     <div>
+      <h2>Tag Suggestions</h2>
+      <div>
+        {topTenTagsNames.map((tag) => (
+          <button key={tag.id} onClick={() => addSearchedTagToFinal(tag)}>
+            {tag.name}
+          </button>
+        ))}
+      </div>
+
+      <br></br>
+      <hr/>
+      <br></br>
+
+      <h2>Choose New Tags</h2>
       <div>
         <input
           type="text"
@@ -133,6 +170,9 @@ const ChangeTag = () => {
       </div>
 
       {/* Render finalTags */}
+      <br></br>
+      <hr />
+      <br></br>
       <div>
         <h2>Final Tags</h2>
         {finalTags.map((tag) => (

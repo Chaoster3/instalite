@@ -177,7 +177,7 @@ async function create_tables(db) {
     `CREATE TABLE IF NOT EXISTS session_memberships (
       session_id INT,
       user_id INT,
-      is_active BOOLEAN DEFAULT TRUE,
+      is_active BOOLEAN DEFAULT FALSE,
       FOREIGN KEY (session_id) REFERENCES chat_sessions(session_id),
       FOREIGN KEY (user_id) REFERENCES users(user_id),
       PRIMARY KEY (session_id, user_id)

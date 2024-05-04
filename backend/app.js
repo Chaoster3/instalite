@@ -11,15 +11,15 @@ const { ConnectContactLens } = require('aws-sdk');
 const app = express();
 const session = require('express-session');
 
-let collection;
+// let collection;
 
 // Comment this out while testing
-chroma.startChroma().then(col => collection = col);
+// chroma.startChroma().then(col => collection = col);
 
-app.use((req, res, next) => {
-    req.collection = collection;
-    next();
-});
+// app.use((req, res, next) => {
+//     req.collection = collection;
+//     next();
+// });
 // Up to here
 
 app.use(express.json());

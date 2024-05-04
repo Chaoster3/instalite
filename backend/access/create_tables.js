@@ -118,6 +118,7 @@ async function create_tables(db) {
       author_id INT, \
       content VARCHAR(255), \
       image VARCHAR(255), \
+      hashtag_ids VARCHAR(255), \
       PRIMARY KEY(post_id), \
       FOREIGN KEY(author_id) REFERENCES users(user_id) \
     );'

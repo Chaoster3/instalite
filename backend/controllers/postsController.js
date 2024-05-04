@@ -33,9 +33,7 @@ exports.createPost = async (req, res) => {
       }
       hashtag_ids.push(hashtag[0].hashtag_id);
     }
-
-    console.log(hashtag_ids);
-
+    
     await db.send_sql(
       `INSERT INTO posts (author_id, image, content, hashtag_ids) VALUES ('${req.session.user_id}', '${image}', '${content}', '${hashtag_ids}')`
     );
@@ -70,3 +68,15 @@ exports.getPost = async (req, res) => {
       .json({ error: 'Error querying database.' });
   }
 };
+
+exports.getAllPosts = async (req, res) => {
+  try {
+    const posts = await db.send_sql(`SELECT * FROM posts`);
+    return res.status(HTTP_STATUS.SUCCESS).json(posts);
+  } catch (err) {
+    console.log(err);
+    return res
+      .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+      .json({ error: 'Error querying database.' });
+  }
+}

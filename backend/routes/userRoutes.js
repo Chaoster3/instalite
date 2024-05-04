@@ -26,5 +26,7 @@ router.route('/addFriends').post(userController.addFriends);
 router.route('/removeFriends').post(userController.removeFriends);
 router.route('/getUsernameFromID/:userId').get(userController.getUsernameFromID);
 
+router.route('/likePost/:postId').get(userController.likePost);
+
 
 module.exports = router;

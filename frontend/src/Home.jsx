@@ -51,6 +51,21 @@ const Home = () => {
     fetchPosts();
   }, []);
 
+  const handleLikePost = async (postId) => {
+    try {
+
+      console.log(postId);
+      const response = await axios.get(`${BACKEND_URL}/users/likePost/${postId}`);
+      if (response.status === 200) {
+        console.log("Post liked successfully");
+      } else {
+        console.error("Error liking post");
+      }
+    } catch (error) {
+      console.error("Error liking post:", error);
+    }
+  }
+
   return (
     <div>
       <h1>Welcome, {user}!</h1>
@@ -63,6 +78,7 @@ const Home = () => {
             {post.hashtag_names.map((hashtag, index) => (
               <li key={index}>hashtag: {hashtag}</li>
             ))}
+            <button onClick={() => handleLikePost(post.post_id)}>Like</button>
           </div>
         ))}
       </ul>

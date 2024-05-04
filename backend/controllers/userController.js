@@ -284,3 +284,75 @@ exports.getUsernameFromID = async (req, res) => {
       .json({ error: 'Error querying database.' });
   }
 }
+
+exports.likePost = async (req, res) => {
+  const { postId } = req.params;
+
+
+  if (req.session.user_id == null) {
+    return res
+      .status(HTTP_STATUS.UNAUTHORIZED)
+      .json({ error: 'User not logged in.' });
+  }
+
+  if (postId == null) {
+    return res
+      .status(HTTP_STATUS.BAD_REQUEST)
+      .json({ error: 'Post id cannot be empty.' });
+  }
+
+  try {
+    // Check if the post exists
+    const post = await db.send_sql(
+      `SELECT * FROM posts WHERE post_id = ${postId}`
+    );
+    if (post.length === 0) {
+      return res
+        .status(HTTP_STATUS.NOT_FOUND)
+        .json({ error: 'Post not found.' });
+    }
+
+    // Check if the user has already liked the post
+    const user = await db.send_sql(
+      `SELECT user_ids_who_liked FROM posts WHERE post_id = ${postId}`
+    );
+
+    var user_ids_who_liked = user[0].user_ids_who_liked;
+    var new_user_ids_who_liked = []
+
+    if (user_ids_who_liked === null) { // when no one has liked the post
+      new_user_ids_who_liked = [req.session.user_id];
+    } else { // appending the current user to the list of users who liked the post
+      user_ids_who_liked = user[0].user_ids_who_liked.split(',');
+
+      // Check if the user has already liked the post
+      if (user_ids_who_liked.includes(String(req.session.user_id))) {
+        return res
+          .status(HTTP_STATUS.BAD_REQUEST)
+          .json({ error: 'User has already liked the post.' });
+      }
+
+      new_user_ids_who_liked = user_ids_who_liked;
+      new_user_ids_who_liked.push(req.session.user_id);
+
+      // Remove duplicates
+      console.log("before removing duplicates: ", new_user_ids_who_liked)
+      console.log("after removing duplicates: ", new_user_ids_who_liked)
+    }
+
+    new_user_ids_who_liked = new_user_ids_who_liked.join(',');
+    const sql = `UPDATE posts SET user_ids_who_liked = '${new_user_ids_who_liked}' WHERE post_id = '${postId}'`;
+
+    await db.send_sql(sql);
+
+    return res
+      .status(HTTP_STATUS.SUCCESS)
+      .json({ success: 'Post liked successfully.' });
+  } catch (err) {
+    console.log(err);
+    return res
+      .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+      .json({ error: 'Error querying database.' });
+  }
+
+}

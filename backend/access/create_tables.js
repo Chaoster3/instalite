@@ -142,7 +142,13 @@ async function create_tables(db) {
     );'
   );
 
-  return await Promise.all([q0, q1, q2, q3, q4, q5]);
+
+  var tempAlter = db.create_tables(
+    'ALTER TABLE users \
+    ADD rank_distribution BLOB \
+  ');
+  // return await Promise.all([q0, q1, q2, q3, q4, q5]);
+  return await Promise.all([tempAlter])
 }
 
 // Database connection setup

@@ -73,13 +73,15 @@ exports.updateUserHashTags = async (req, res) => {
         `SELECT hashtag_id FROM hashtags WHERE name = '${hashtag_names[i]}'`
       );
       if (tag.length == 0) {
-        console.log("cannot find tag:", hashtag_names[i])
         return res.status(HTTP_STATUS.BAD_REQUEST).json({ error: 'Tag does not exist.' });
       }
       hashtag_ids.push(tag[0].hashtag_id);
     }
 
     console.log(hashtag_ids)
+
+    const sql = `UPDATE users SET interests = '${hashtag_ids}' WHERE user_id = '${user_id}'`;
+    console.log(sql)
 
     // Update the user's hashtags
     await db.send_sql(

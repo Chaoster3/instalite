@@ -3,7 +3,7 @@ const userController = require('../controllers/userController.js');
 const authController = require('../controllers/authenticationController.js');
 const router = express.Router();
 const multer = require('multer');
-const upload = multer({ dest: '/basic-face-match-main/selfies/' });
+const upload = multer({ dest: '/profile_pics/' });
 
 
 // Authentication routes

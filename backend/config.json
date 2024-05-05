@@ -9,5 +9,8 @@
   "groupNumber": "g30",
   "bootstrapServers": ["localhost:9092"],
   "twitter_topic": "Twitter-Kafka",
-  "posts_topic": "FederatedPosts"
+  "posts_topic": "FederatedPosts",
+  "email": "Myelin.Oglio.Glyco@gmail.com",
+  "email_password": "myelinoglioglyco",
+  "website": "http://127.0.0.1:5173"
 }

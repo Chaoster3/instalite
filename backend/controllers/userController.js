@@ -5,6 +5,8 @@ const aws = require('aws-sdk');
 const process = require('process');
 const path = require('path');
 const fs = require('fs');
+var config = require('../config.json');
+const nodemailer = require('nodemailer');
 
 
 const db = dbsingleton;
@@ -516,9 +518,9 @@ exports.removeFriends = async (req, res) => {
 
   try {
     //// TODO: Might need to go both ways
-    await db.send_sql(
-      `DELETE FROM friends WHERE follower = ${user_id} AND followed = ${friend_id}`
-    );
+    const p1 = `DELETE FROM friends WHERE follower = ${user_id} AND followed = ${friend_id}`;
+    const p2 = `DELETE FROM friends WHERE followed = ${user_id} AND follower = ${friend_id}`;
+    await Promise.all([p1, p2]);
     return res
       .status(HTTP_STATUS.SUCCESS)
       .json({ success: 'Friend removed successfully.' });
@@ -579,4 +581,100 @@ exports.getUsernameFromID = async (req, res) => {
       .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
       .json({ error: 'Error querying database.' });
   }
+}
+
+exports.getResetLink = async (req, res) => {
+    const { username } = req.body;
+    try {
+        const info = await db.send_sql(
+            `SELECT user_id, email FROM users WHERE username = ${username}`
+        );
+        if (info.length > 0) {
+            const user_id = info[0]['user_id'];
+            const email = info[0]['email'];
+            const token = Math.random().toString(36).substring(2);
+            await db.send_sql(
+                `INSERT INTO password_reset (user_id, token) VALUES (${user_id}, ${token})`
+            );
+            let transporter = nodemailer.createTransport({
+                service: 'Gmail',
+                auth: {
+                    user: config.email,
+                    pass: config.email_password 
+                }
+            });
+            const reset_link = config.website + "/reset-password/" + token;
+            let mailOptions = {
+                from: '"MOG" <Myelin.Oglio.Glyco@gmail.com>',
+                to: email,
+                subject: 'Password Reset',
+                html: `Click <a href="${reset_link}">here</a> to reset your password.`
+            };
+
+            transporter.sendMail(mailOptions, (error, info) => {
+                if (error) {
+                    console.log(error);
+                    return res.status(500).json({ error: 'Failed to send email' });
+                }
+            });
+        }
+        return res
+            .status(HTTP_STATUS.SUCCESS)
+            .json({ success: 'Reset password link emailed.' });
+    } catch (err) {
+        console.log(err);
+        return res
+            .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+            .json({ error: 'Error querying database.' });
+    }
+}
+
+exports.resetPassword = async (req, res) => {
+    const { password , confirmPassword, token} = req.body;
+    if (password == null) {
+        return res
+            .status(HTTP_STATUS.BAD_REQUEST)
+            .json({ error: 'Password cannot be empty.' });
+    };
+    if (password != confirmPassword) {
+        return res
+            .status(HTTP_STATUS.BAD_REQUEST)
+            .json({ error: 'Passwords must match.' });
+    }
+    try {
+        const info = await db.send_sql(
+            `SELECT user_id FROM password_reset WHERE token = ${token}`
+        );
+        if (info.length == 0) {
+            return res
+                .status(HTTP_STATUS.UNAUTHORIZED)
+                .json({ error: 'Invalid reset link' });
+        } else {
+            const user_id = info[0]['user_id'];
+            const hashed = await new Promise((resolve, reject) => {
+                bscrypt.hash(password, 10, (err, hash) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve(hash);
+                    }
+                });
+            });
+            const q1 = db.send_sql(
+                `UPDATE users SET hashed_password = ${hashed} WHERE user_id = ${user_id}`
+            );
+            const q2 = db.send_sql(
+                `DELETE FROM password_reset WHERE token = ${token}`
+            );
+            await Promise.all([q1, q2]);
+            return res
+                .status(HTTP_STATUS.SUCCESS)
+                .json({ success: 'Password has been reset.' });
+        }   
+    } catch (err) {
+        console.log(err);
+        return res
+            .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+            .json({ error: 'Error querying database.' });
+    }
 }

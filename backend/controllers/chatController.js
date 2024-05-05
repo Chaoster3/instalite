@@ -1,12 +1,12 @@
 const db = dbsingleton;
 
 exports.addUser = async (userId, socketId) => {
-    const sql = `INSERT INTO user_connections (user_id, socket_id) VALUES (?, ?)`;
+    const sql = `INSERT INTO user_connections (user_id, socket_id) VALUES (?, ?) ON DUPLICATE KEY UPDATE socket_id = VALUES(socket_id)`;
     await db.send_sql(sql, [userId, socketId]);
 };
 
 exports.joinRoom = async (userId, sessionId, socketId) => {
-    const sql = `INSERT INTO session_memberships (user_id, session_id, socket_id) VALUES (?, ?, ?)`;
+    const sql = `REPLACE INTO session_memberships (user_id, session_id, socket_id) VALUES (?, ?, ?)`;
     await db.send_sql(sql, [userId, sessionId, socketId]);
     await this.updateUserStatus(userId, sessionId, true);
 };
@@ -17,7 +17,7 @@ exports.saveMessage = async (sessionId, userId, message) => {
 };
 
 exports.fetchMessagesForSession = async (sessionId) => {
-    const sql = `SELECT * FROM chat_messages WHERE session_id = ? ORDER BY timestamp ASC`;
+    const sql = `SELECT message FROM chat_messages WHERE session_id = ? ORDER BY timestamp ASC`;
     return db.send_sql(sql, [sessionId]);
 };
 
@@ -52,4 +52,9 @@ exports.checkSessionMembers = async (sessionId) => {
 exports.deleteSession = async (sessionId) => {
     const sql = `DELETE FROM chat_sessions WHERE session_id = ?`;
     await db.send_sql(sql, [sessionId]);
+};
+
+exports.getSessionUsers = async (sessionId) => {
+    const sql = `SELECT u.user_id, u.username, u.avatar_url FROM users u JOIN session_memberships sm ON u.user_id = sm.user_id WHERE sm.session_id = ?`;
+    return db.send_sql(sql, [sessionId]);
 };

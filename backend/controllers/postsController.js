@@ -33,7 +33,7 @@ exports.createPost = async (req, res) => {
       }
       hashtag_ids.push(hashtag[0].hashtag_id);
     }
-    
+
     await db.send_sql(
       `INSERT INTO posts (author_id, image, content, hashtag_ids) VALUES ('${req.session.user_id}', '${image}', '${content}', '${hashtag_ids}')`
     );

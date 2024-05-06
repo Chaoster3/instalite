@@ -133,12 +133,11 @@ async function create_tables(db) {
       post_id INT, \
       author_id INT, \
       content VARCHAR(255), \
-      hashtag_ids INT, \
+      hashtag_ids VARCHAR(255), \
       timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP, \
       PRIMARY KEY(comment_id), \
       FOREIGN KEY(post_id) REFERENCES posts(post_id), \
-      FOREIGN KEY(author_id) REFERENCES users(user_id), \
-      FOREIGN KEY(hashtag_ids) REFERENCES hashtags(hashtag_id) \
+      FOREIGN KEY(author_id) REFERENCES users(user_id) \
     );'
   );
 
@@ -148,7 +147,7 @@ async function create_tables(db) {
     ADD rank_distribution BLOB \
   ');
   // return await Promise.all([q0, q1, q2, q3, q4, q5]);
-  return await Promise.all([tempAlter])
+  return await Promise.all([q5])
 }
 
 // Database connection setup

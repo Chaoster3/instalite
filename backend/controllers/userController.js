@@ -86,7 +86,6 @@ exports.uploadProfilePicture = async (req, res) => {
 }
 
 exports.getAllFriends = async (req, res) => {
-  console.log(req.session.user_id);
   const { user_id } = req.session;
 
   if (user_id == null) {
@@ -97,7 +96,7 @@ exports.getAllFriends = async (req, res) => {
 
   try {
     const friends = await db.send_sql(
-      `SELECT users.username AS username
+      `SELECT users.username AS username, users.user_id AS user_id
        FROM friends
         JOIN users ON friends.followed = users.user_id
        WHERE friends.follower = ${user_id}`
@@ -178,7 +177,7 @@ exports.getPostsProminentFigures = async (req, res) => {
 
 exports.addFriends = async (req, res) => {
   const { user_id } = req.session;
-  const { friend_id } = req.body;
+  const { friendId } = req.params;
 
   if (user_id == null) {
     return res
@@ -186,16 +185,26 @@ exports.addFriends = async (req, res) => {
       .json({ error: 'You must be logged in to add a friend.' });
   }
 
-  if (friend_id == null) {
+  if (friendId == null) {
     return res
       .status(HTTP_STATUS.BAD_REQUEST)
       .json({ error: 'Friend id cannot be empty.' });
   }
 
   try {
-    //// TODO: Might need to go both ways
+    // Check if friend id exists
+    const friend = await db.send_sql(
+      `SELECT * FROM users WHERE user_id = ${friendId}`
+    );
+    if (friend.length === 0) {
+      return res
+        .status(HTTP_STATUS.NOT_FOUND)
+        .json({ error: 'Friend not found.' });
+    }
+
+
     await db.send_sql(
-      `INSERT INTO friends (follower, followed) VALUES (${user_id}, ${friend_id})`
+      `INSERT INTO friends (follower, followed) VALUES (${user_id}, ${friendId})`
     );
     return res
       .status(HTTP_STATUS.SUCCESS)
@@ -210,7 +219,7 @@ exports.addFriends = async (req, res) => {
 
 exports.removeFriends = async (req, res) => {
   const { user_id } = req.session;
-  const { friend_id } = req.body;
+  const { friendId } = req.params;
 
   if (user_id == null) {
     return res
@@ -218,16 +227,25 @@ exports.removeFriends = async (req, res) => {
       .json({ error: 'You must be logged in to remove a friend.' });
   }
 
-  if (friend_id == null) {
+  if (friendId == null) {
     return res
       .status(HTTP_STATUS.BAD_REQUEST)
       .json({ error: 'Friend id cannot be empty.' });
   }
 
   try {
-    //// TODO: Might need to go both ways
+    // Check if the friend exists
+    const friend = await db.send_sql(
+      `SELECT * FROM users WHERE user_id = ${friendId}`
+    );
+    if (friend.length === 0) {
+      return res
+        .status(HTTP_STATUS.NOT_FOUND)
+        .json({ error: 'Friend not found.' });
+    }
+
     await db.send_sql(
-      `DELETE FROM friends WHERE follower = ${user_id} AND followed = ${friend_id}`
+      `DELETE FROM friends WHERE follower = ${user_id} AND followed = ${friendId}`
     );
     return res
       .status(HTTP_STATUS.SUCCESS)
@@ -478,7 +496,7 @@ exports.getFriendRecommendation = async (req, res) => {
     var friendRecommendation = [];
     for (let i = 0; i < friendRecommendationIds.length; i++) {
       const username = await db.send_sql(
-        `SELECT username FROM users WHERE user_id = ${friendRecommendationIds[i]}`
+        `SELECT username, user_id FROM users WHERE user_id = ${friendRecommendationIds[i]}`
       );
       friendRecommendation.push(username[0]);
     }

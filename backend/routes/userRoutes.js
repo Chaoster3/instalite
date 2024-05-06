@@ -22,8 +22,8 @@ router.route('/uploadProfilePicture').put(userController.uploadProfilePicture); 
 router.route('/getAllFriends').get(userController.getAllFriends);
 router.route('/getPostsMainPage').get(userController.getPostsMainPage);
 router.route('/getPostsProminentFigures').get(userController.getPostsProminentFigures); // TODO: implement this
-router.route('/addFriends').post(userController.addFriends);
-router.route('/removeFriends').post(userController.removeFriends);
+router.route('/addFriend/:friendId').post(userController.addFriends);
+router.route('/removeFriend/:friendId').post(userController.removeFriends);
 router.route('/getUsernameFromID/:userId').get(userController.getUsernameFromID);
 
 // Liking and unliking posts

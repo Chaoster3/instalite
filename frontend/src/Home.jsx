@@ -56,14 +56,12 @@ const Home = () => {
 
   const handleLikePost = async (postId) => {
     try {
-
-      console.log(postId);
       const response = await axios.get(
         `${BACKEND_URL}/users/likePost/${postId}`,
         { withCredentials: true }
       );
       if (response.status === 200) {
-        setUserLikedPosts([...userLikedPosts, postId]);
+        setUserLikedPostIds([...userLikedPostIds, postId]);
         console.log("Post liked successfully");
       } else {
         console.error("Error liking post");
@@ -80,13 +78,12 @@ const Home = () => {
   const fetchUserLikedPosts = async () => {
     try {
       const response = await axios.get(
-        `${BACKEND_URL}/users/likedPosts`,
+        `${BACKEND_URL}/users/getLikedPosts`,
         { withCredentials: true }
       );
 
-
-      console.log("fetching usr liked posts", response.data.post_id);
-      setUserLikedPostIds(response.data.post_id);
+      const post_ids = response.data.posts.map(post => post.post_id);
+      setUserLikedPostIds(post_ids);
     } catch (error) {
       console.error('Error fetching liked posts:', error);
     }
@@ -95,12 +92,12 @@ const Home = () => {
   const handleUnlikePost = async (postId) => {
     try {
       // Send a request to unlike the post
-      await axios.delete(
-        `/api/post/${postId}/like`,
+      await axios.get(
+        `${BACKEND_URL}/users/unlikePost/${postId}`,
         { withCredentials: true }
       );
       // Update the list of liked posts in the component state
-      setUserLikedPosts(userLikedPosts.filter(id => id !== postId));
+      setUserLikedPostIds(userLikedPostIds.filter(id => id !== postId));
     } catch (error) {
       console.error('Error unliking the post:', error);
     }
@@ -121,12 +118,11 @@ const Home = () => {
               <li key={index}>hashtag: {hashtag}</li>
             ))}
             {/* Render like/unlike button based on whether the post is liked */}
-            {/* {userLikedPosts.includes(post.post_id) ? (
+            {userLikedPostIds.includes(post.post_id) ? (
               <button onClick={() => handleUnlikePost(post.post_id)}>Unlike</button>
             ) : (
               <button onClick={() => handleLikePost(post.post_id)}>Like</button>
-            )} */}
-            <button onClick={() => handleLikePost(post.post_id)}>Like</button>
+            )}
           </div>
         ))}
       </ul>

@@ -147,7 +147,7 @@ exports.getPostsMainPage = async (req, res) => {
         posts[i].hashtag_names = [];
         continue;
       }
-      
+
       const hashtag_ids = posts[i].hashtag_ids.split(',');
       const hashtag_names = [];
       for (let j = 0; j < hashtag_ids.length; j++) {
@@ -333,6 +333,7 @@ exports.likePost = async (req, res) => {
 
       // Check if the user has already liked the post
       if (user_ids_who_liked.includes(String(req.session.user_id))) {
+        console.log("user has already liked the post");
         return res
           .status(HTTP_STATUS.BAD_REQUEST)
           .json({ error: 'User has already liked the post.' });
@@ -340,10 +341,6 @@ exports.likePost = async (req, res) => {
 
       new_user_ids_who_liked = user_ids_who_liked;
       new_user_ids_who_liked.push(req.session.user_id);
-
-      // Remove duplicates
-      console.log("before removing duplicates: ", new_user_ids_who_liked)
-      console.log("after removing duplicates: ", new_user_ids_who_liked)
     }
 
     new_user_ids_who_liked = new_user_ids_who_liked.join(',');
@@ -389,5 +386,63 @@ exports.getLikedPosts = async (req, res) => {
 }
 
 exports.unlikePost = async (req, res) => {
+  const { postId } = req.params;
+  const { user_id } = req.session;
 
+  // Check if the user is logged in
+  if (user_id === null) {
+    return res
+      .status(HTTP_STATUS.UNAUTHORIZED)
+      .json({ error: 'User not logged in.' });
+  }
+
+  // Check if the post id is provided
+  if (postId === null) {
+    return res
+      .status(HTTP_STATUS.BAD_REQUEST)
+      .json({ error: 'Post id cannot be empty.' });
+  }
+
+  try {
+    // Check if the post exists
+    const post = await db.send_sql(
+      `SELECT * FROM posts WHERE post_id = ${postId}`
+    );
+    if (post.length === 0) {
+      return res
+        .status(HTTP_STATUS.NOT_FOUND)
+        .json({ error: 'Post not found.' });
+    }
+
+    // Check if the user has already liked the post
+    const user = await db.send_sql(
+      `SELECT user_ids_who_liked FROM posts WHERE post_id = ${postId}`
+    );
+
+    var user_ids_who_liked = user[0].user_ids_who_liked;
+    var new_user_ids_who_liked = []
+
+    if (user_ids_who_liked === null) { // when no one has liked the post
+      return res
+        .status(HTTP_STATUS.SUCCESS)
+        .json({ success: 'Post unliked successfully.' });
+    } else { // remove the current user from the liked list
+      user_ids_who_liked = user[0].user_ids_who_liked.split(',');
+      new_user_ids_who_liked = user_ids_who_liked.filter(id => id !== String(user_id));
+    }
+
+    new_user_ids_who_liked = new_user_ids_who_liked.join(',');
+    const sql = `UPDATE posts SET user_ids_who_liked = '${new_user_ids_who_liked}' WHERE post_id = '${postId}'`;
+
+    await db.send_sql(sql);
+
+    return res
+      .status(HTTP_STATUS.SUCCESS)
+      .json({ success: 'Post unliked successfully.' });
+  } catch (err) {
+    console.log(err);
+    return res
+      .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+      .json({ error: 'Error querying database.' });
+  }
 }

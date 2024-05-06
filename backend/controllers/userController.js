@@ -356,3 +356,32 @@ exports.likePost = async (req, res) => {
   }
 
 }
+
+exports.getLikedPosts = async (req, res) => {
+  const { user_id } = req.session;
+
+  if (user_id == null) {
+    return res
+      .status(HTTP_STATUS.UNAUTHORIZED)
+      .json({ error: 'You must be logged in to view your liked posts.' });
+  }
+
+  try {
+    const posts = await db.send_sql(
+      `SELECT post_id FROM posts WHERE FIND_IN_SET('${user_id}', user_ids_who_liked) > 0;`
+    );
+
+    return res
+      .status(HTTP_STATUS.SUCCESS)
+      .json({ posts });
+  } catch (err) {
+    console.log(err);
+    return res
+      .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+      .json({ error: 'Error querying database.' });
+  }
+}
+
+exports.unlikePost = async (req, res) => {
+  
+}

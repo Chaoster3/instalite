@@ -3,6 +3,10 @@ import axios from "axios";
 import { BACKEND_URL } from "./utils/constants";
 import { useNavigate } from "react-router-dom";
 
+const axiosInstance = axios.create({
+  withCredentials: true
+})
+
 const CreatePosts = () => {
   const navigate = useNavigate();
   const [form, setForm] = useState({
@@ -38,9 +42,9 @@ const CreatePosts = () => {
     console.log("submitted form", form)
     e.preventDefault();
     try {
-      const response = await axios.post(
+      const response = await axiosInstance.post(
         `${BACKEND_URL}/posts/createPost`,
-        form,
+        form
       );
       if (response.status === 201) {
         setFormStatus("Post created successfully");
@@ -99,7 +103,7 @@ const CreatePosts = () => {
       setIsLoading(true);
       setErrorMessage('');
 
-      const response = await axios.post(`${BACKEND_URL}/tags/createTag`, { name: newTagInput });
+      const response = await axiosInstance.post(`${BACKEND_URL}/tags/createTag`, { name: newTagInput });
 
       if (response.status === 201) {
         setNewTagInput('');

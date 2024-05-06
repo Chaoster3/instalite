@@ -4,6 +4,10 @@ import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import { BACKEND_URL } from "../../utils/constants";
 
+const axiosInstance = axios.create({
+  withCredentials: true
+})
+
 function Signup() {
   const [isFirstPage, setIsFirstPage] = useState(true);
   const [profilePhoto, setProfilePhoto] = useState(null);
@@ -106,7 +110,7 @@ function Signup() {
       //   },
       // });
 
-      const response = await axios.post(`${BACKEND_URL}/users/register`, formData);
+      const response = await axiosInstance.post(`${BACKEND_URL}/users/register`, formData);
 
       if (response.status === 201) {
         console.log('Sign Up successful');

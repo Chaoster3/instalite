@@ -126,6 +126,9 @@ exports.login = async function (req, res) {
         .json({ error: 'Username and/or password are invalid.' });
     } else {
       req.session.user_id = correct[0]['user_id'];
+      //console.log("logging in")
+      //console.log(req.session)
+      //console.log(req.session.user_id)
       req.session.username = username;
       await req.session.save();
       return res.status(HTTP_STATUS.SUCCESS).json({ username: username });
@@ -235,6 +238,8 @@ exports.resetPassword = async (req, res) => {
 
 // Checks if the user is signed in
 exports.checkIfLoggedIn = async (req, res) => {
+  //console.log(req.session);
+  //console.log(req.session.user_id);
   if (req.session && req.session.user_id) {
     return res.status(HTTP_STATUS.SUCCESS).json({ data: req.session.username });
   } else {

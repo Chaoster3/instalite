@@ -446,3 +446,50 @@ exports.unlikePost = async (req, res) => {
       .json({ error: 'Error querying database.' });
   }
 }
+
+exports.getFriendRecommendation = async (req, res) => {
+  const { user_id } = req.session;
+
+  if (user_id == null) {
+    return res
+      .status(HTTP_STATUS.UNAUTHORIZED)
+      .json({ error: 'You must be logged in to view friend recommendations.' });
+  }
+
+  try {
+    const currentFriends = await db.send_sql(
+      `SELECT followed FROM friends WHERE follower = ${user_id}`
+    );
+
+    const friendOfFriends = await db.send_sql(`
+      SELECT f2.followed AS followed
+      FROM friends f1
+        JOIN friends f2 ON f1.followed = f2.follower
+      WHERE f1.follower = ${user_id} AND f2.followed <> ${user_id}
+    `);
+
+    // Select people from friendOfFriends that aren't in currentFriends
+    const friends = currentFriends.map(friend => friend.followed);
+    const users = friendOfFriends.map(friend => friend.followed);
+
+    var friendRecommendationIds = users.filter(user => !friends.includes(user));
+
+    // Get the usernames of the friend recommendations
+    var friendRecommendation = [];
+    for (let i = 0; i < friendRecommendationIds.length; i++) {
+      const username = await db.send_sql(
+        `SELECT username FROM users WHERE user_id = ${friendRecommendationIds[i]}`
+      );
+      friendRecommendation.push(username[0]);
+    }
+
+    return res
+      .status(HTTP_STATUS.SUCCESS)
+      .json({ friendRecommendation });
+  } catch (err) {
+    console.log(err);
+    return res
+      .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+      .json({ error: 'Error querying database.' });
+  }
+}

@@ -26,9 +26,13 @@ router.route('/addFriends').post(userController.addFriends);
 router.route('/removeFriends').post(userController.removeFriends);
 router.route('/getUsernameFromID/:userId').get(userController.getUsernameFromID);
 
+// Liking and unliking posts
 router.route('/likePost/:postId').get(userController.likePost);
 router.route('/getLikedPosts').get(userController.getLikedPosts);
 router.route('/unlikePost/:postId').get(userController.unlikePost);
+
+// Friend recommendation
+router.route('/getFriendRecommendation').get(userController.getFriendRecommendation);
 
 
 module.exports = router;

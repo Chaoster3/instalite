@@ -12,7 +12,7 @@ const Chat = () => {
 
     useEffect(() => {
         socket.on('historicalMessages', (data) => {
-            setChats(data); // Expecting data to be an array of chat objects
+            setChats(data);
         });
 
         socket.on('newMessage', (newMessage) => {

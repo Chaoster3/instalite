@@ -5,6 +5,7 @@ const aws = require('aws-sdk');
 const process = require('process');
 const path = require('path');
 const fs = require('fs');
+const HTTP_STATUS = require('../utils/httpStatus');
 
 
 const db = dbsingleton;

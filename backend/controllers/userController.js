@@ -139,9 +139,15 @@ exports.getPostsMainPage = async (req, res) => {
     );
 
     const posts = yourPosts.concat(friendsPosts);
+    console.log("posts length", posts.length);
 
     // Convert each post's hashtag_ids into hashtag_names
     for (let i = 0; i < posts.length; i++) {
+      if (posts[i].hashtag_ids === null) {
+        posts[i].hashtag_names = [];
+        continue;
+      }
+      
       const hashtag_ids = posts[i].hashtag_ids.split(',');
       const hashtag_names = [];
       for (let j = 0; j < hashtag_ids.length; j++) {
@@ -383,5 +389,5 @@ exports.getLikedPosts = async (req, res) => {
 }
 
 exports.unlikePost = async (req, res) => {
-  
+
 }

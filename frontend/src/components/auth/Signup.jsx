@@ -1,17 +1,19 @@
 import axios from 'axios';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import { BACKEND_URL } from "../../utils/constants";
 // import { l } from 'vite/dist/node/types.d-aGj9QkWt';
 import alertGradient from '@material-tailwind/react/theme/components/alert/alertGradient';
+import HashTagsSelector from '../../HashTagsSelector';
+
+const axiosInstance = axios.create({
+  withCredentials: true
+})
 
 function Signup() {
   const [isFirstPage, setIsFirstPage] = useState(true);
   const [profilePhoto, setProfilePhoto] = useState(null);
-
-  const navigate = useNavigate();
-
   const [matches, setMatches] = useState(null);
   const [formData, setFormData] = useState({
     username: '',
@@ -26,9 +28,30 @@ function Signup() {
     profile_pic: null,
     image_link: ''
   });
+  const [interestNames, setInterestNames] = useState([])
+  const [topTenTagsNames, setTopTenTagsNames] = useState([]);
 
-  console.log(formData);
-  
+
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const getTagsSuggestions = async () => {
+      try {
+        const response = await axios.get(`${BACKEND_URL}/tags/findTopTenTags`);
+
+        if (response.status === 200) {
+          setTopTenTagsNames(response.data);
+        } else {
+        }
+      } catch (error) {
+        console.error('Error getting tags suggestions:', error);
+      }
+    };
+
+    getTagsSuggestions();
+
+  }, []);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prevFormData) => ({
@@ -111,10 +134,32 @@ function Signup() {
     e.preventDefault();
 
     try {
-      const response = await axios.post(`${BACKEND_URL}/users/register`, formData);
+      const body = new FormData();
+      for (const key in formData) {
+        body.append(key, formData[key]);
+      }
+      //body.append('profilePoto', profilePhoto);
+      // const response = await axios.post(`${baseURL}/users/register`, body, {
+      //   headers: {
+      //     'Content-Type': 'multipart/form-data',
+      //   },
+      // });
+
+      const response = await axiosInstance.post(`${BACKEND_URL}/users/register`, {
+        ...formData,
+        interestNames: interestNames
+      });
 
       if (response.status === 201) {
-        response.data.matches
+        console.log('Sign Up successful');
+
+        // Log the user in
+        await axiosInstance.post(`${BACKEND_URL}/users/login`, {
+          username: formData.username,
+          password: formData.password,
+        });
+
+        navigate('/');
       }
     } catch (error) {
       console.log('Sign Up failed');
@@ -131,6 +176,16 @@ function Signup() {
         linked_nconst: '',
         linked_name: ''
       });
+      setInterestNames([])
+    }
+  };
+
+
+  const addSearchedTagToFinal = (tag) => {
+    const isTagInFinalTags = interestNames.some(finalTag => finalTag.name === tag.name);
+
+    if (!isTagInFinalTags) {
+      setInterestNames([...interestNames, tag.name]);
     }
   };
 

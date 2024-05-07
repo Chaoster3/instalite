@@ -18,6 +18,7 @@ exports.register = async function (req, res) {
     affiliation,
     birthday,
     linked_nconst,
+    interestNames,
   } = req.body;
   console.log(req);
 
@@ -32,16 +33,6 @@ exports.register = async function (req, res) {
     birthday == null
   ) {
     console.log('one or more fields were empty');
-    // print everything
-    console.log(username);
-    console.log(password);
-    console.log(passwordConfirm)
-    console.log(firstName)
-    console.log(lastName)
-    console.log(email)
-    console.log(affiliation)
-    console.log(birthday)
-    console.log(linked_nconst)
     return res.status(400).json({
       error:
         'One or more of the fields you entered was empty, please try again.',
@@ -67,8 +58,6 @@ exports.register = async function (req, res) {
       });
     }
 
-    console.log('hashing password');
-
     const hashed = await new Promise((resolve, reject) => {
       bcrypt.hash(password, 10, (err, hash) => {
         if (err) {
@@ -79,8 +68,22 @@ exports.register = async function (req, res) {
       });
     });
 
+    // Convert interest names into interest ids
+    const interestIds = [];
+    for (let i = 0; i < interestNames.length; i++) {
+      const interest = await db.send_sql(
+        `SELECT * FROM hashtags WHERE name = '${interestNames[i]}'`
+      );
+      if (interest.length === 0) {
+        return res
+          .status(HTTP_STATUS.BAD_REQUEST)
+          .json({ error: `Interest ${interestNames[i]} does not exist.` });
+      }
+      interestIds.push(interest[0].hashtag_id);
+    }
+
     await db.send_sql(
-      `INSERT INTO users (username, hashed_password, first_name, last_name, email, affiliation, birthday, linked_nconst) VALUES ('${username}', '${hashed}', '${firstName}', '${lastName}', '${email}', '${affiliation}', '${birthday}', '${linked_nconst}')`
+      `INSERT INTO users (username, hashed_password, first_name, last_name, email, affiliation, birthday, linked_nconst, interests) VALUES ('${username}', '${hashed}', '${firstName}', '${lastName}', '${email}', '${affiliation}', '${birthday}', '${linked_nconst}', '${interestIds}')`
     );
 
     return res.status(HTTP_STATUS.CREATED).json({ username: username });
@@ -129,9 +132,15 @@ exports.login = async function (req, res) {
         .status(HTTP_STATUS.UNAUTHORIZED)
         .json({ error: 'Username and/or password are invalid.' });
     } else {
+      // User succcessfully logs in
       req.session.user_id = correct[0]['user_id'];
       req.session.username = username;
       await req.session.save();
+
+      // Update the logged in field in the user db
+      await db.send_sql(
+        `UPDATE users SET logged_in = 1 WHERE user_id = ${req.session.user_id}`
+      );
       return res.status(HTTP_STATUS.SUCCESS).json({ username: username });
     }
   } catch (err) {
@@ -143,13 +152,26 @@ exports.login = async function (req, res) {
 };
 
 exports.logout = async function (req, res) {
-  // TODO: fill in log out logic to disable session info
+  try {
+    // Update the logged in field in the user db
+    await db.send_sql(
+      `UPDATE users SET logged_in = 0 WHERE user_id = ${req.session.user_id}`
+    );
+  } catch (err) {
+    console.log(err);
+    return res
+      .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+      .json({ error: 'Error querying database' });
+  }
+
   req.session.user_id = null;
   req.session.username = null;
   await req.session.save();
+
   return res
     .status(HTTP_STATUS.SUCCESS)
     .json({ message: 'You were successfully logged out.' });
+
 };
 
 exports.changePassword = async (req, res) => {
@@ -229,9 +251,17 @@ exports.changeEmail = async (req, res) => {
   }
 };
 
+// A "forgot password" option that sends to the user's email address a password reset token and a link to the password reset screen;
+exports.resetPassword = async (req, res) => {
+  return res
+    .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+    .json({ error: "Haven't implemented." });
+}
 
 // Checks if the user is signed in
 exports.checkIfLoggedIn = async (req, res) => {
+  //console.log(req.session);
+  //console.log(req.session.user_id);
   if (req.session && req.session.user_id) {
     return res.status(HTTP_STATUS.SUCCESS).json({ data: req.session.username });
   } else {

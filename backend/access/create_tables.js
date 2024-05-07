@@ -118,12 +118,13 @@ async function create_tables(db) {
       author_id INT, \
       content VARCHAR(255), \
       image VARCHAR(255), \
+      hashtag_ids VARCHAR(255), \
+      user_ids_who_liked VARCHAR(255), \
       PRIMARY KEY(post_id), \
       FOREIGN KEY(author_id) REFERENCES users(user_id) \
     );'
   );
 
-  //      hashtag_ids INT, \
 
   // Comments table
   var q5 = db.create_tables(
@@ -132,12 +133,11 @@ async function create_tables(db) {
       post_id INT, \
       author_id INT, \
       content VARCHAR(255), \
-      hashtag_ids INT, \
+      hashtag_ids VARCHAR(255), \
       timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP, \
       PRIMARY KEY(comment_id), \
       FOREIGN KEY(post_id) REFERENCES posts(post_id), \
-      FOREIGN KEY(author_id) REFERENCES users(user_id), \
-      FOREIGN KEY(hashtag_ids) REFERENCES hashtags(hashtag_id) \
+      FOREIGN KEY(author_id) REFERENCES users(user_id) \
     );'
   );
 

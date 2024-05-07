@@ -4,6 +4,10 @@ import axios from "axios";
 import { BACKEND_URL } from "../../utils/constants";
 import { useNavigate } from 'react-router-dom';
 
+const axiosInstance = axios.create({
+  withCredentials: true
+})
+
 function Login() {
   const [formData, setFormData] = useState({
     username: "",
@@ -23,7 +27,7 @@ function Login() {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post(
+      const response = await axiosInstance.post(
         `${BACKEND_URL}/users/login`,
         formData,
       );

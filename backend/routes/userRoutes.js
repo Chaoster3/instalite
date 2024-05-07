@@ -24,10 +24,20 @@ router.route('/changeActor').put(userController.changeActor); // need to verify 
 router.route('/getAllFriends').get(userController.getAllFriends);
 router.route('/getPostsMainPage').get(userController.getPostsMainPage);
 router.route('/getPostsProminentFigures').get(userController.getPostsProminentFigures); // TODO: implement this
-// router.route('/addFriends').post(userController.addFriends);
-router.route('/sendFriendRequest').post(userController.sendFriendRequest);
+router.route('/addFriends').post(userController.addFriends);
 router.route('/removeFriends').post(userController.removeFriends);
+router.route('/sendFriendRequest').post(userController.sendFriendRequest);
+
 router.route('/getUsernameFromID/:userId').get(userController.getUsernameFromID);
+
+// Liking and unliking posts
+router.route('/likePost/:postId').get(userController.likePost);
+router.route('/getLikedPosts').get(userController.getLikedPosts);
+router.route('/unlikePost/:postId').get(userController.unlikePost);
+router.route('/checkIfLikedPost/:postId').get(userController.checkIfLikedPost);
+
+// Friend recommendation
+router.route('/getFriendRecommendation').get(userController.getFriendRecommendation);
 
 
 module.exports = router;

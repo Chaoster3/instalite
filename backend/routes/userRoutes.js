@@ -7,7 +7,7 @@ const upload = multer({ dest: '/profile_pics/' });
 
 
 // Authentication routes
-router.route('/register').post(authController.register);
+router.route('/register').post(userController.register);
 router.route('/login').post(authController.login);
 router.route('/logout').get(authController.logout);
 router.route('/changePassword').put(authController.changePassword);

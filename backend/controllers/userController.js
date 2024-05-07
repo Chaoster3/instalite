@@ -24,7 +24,7 @@ exports.register = async function (req, res) {
         email,
         affiliation,
         birthday,
-        uri,
+        image_link,
         linked_nconst,
         linked_name
     } = req.body;
@@ -36,7 +36,7 @@ exports.register = async function (req, res) {
         email == null ||
         affiliation == null ||
         birthday == null ||
-        uri == null ||
+        image_link == null ||
         linked_nconst == null ||
         linked_name == null
     ) {
@@ -56,7 +56,7 @@ exports.register = async function (req, res) {
             });
         }
         const hashed = await new Promise((resolve, reject) => {
-            bscrypt.hash(password, 10, (err, hash) => {
+            bcrypt.hash(password, 10, (err, hash) => {
                 if (err) {
                     reject(err);
                 } else {
@@ -65,7 +65,7 @@ exports.register = async function (req, res) {
             });
         });
         await db.send_sql(
-            `INSERT INTO users (username, password, firstName, lastName, email, affiliation, birthday, uri, actor, actor_id) VALUES ('${username}', '${hashed}', '${firstName}', '${lastName}', '${email}', '${affiliation}', '${birthday}', '${uri}', '${actor}', '${actor_id}')`
+            `INSERT INTO users (username, password, firstName, lastName, email, affiliation, birthday, image_link, actor, actor_id) VALUES ('${username}', '${hashed}', '${firstName}', '${lastName}', '${email}', '${affiliation}', '${birthday}', '${image_link}', '${linked_name}', '${linked_nconst}')`
         );
         const found = await db.send_sql(
             `SELECT user_id FROM users WHERE username = '${username}'`
@@ -284,7 +284,7 @@ exports.getClosest = async (req, res) => {
                     console.error('Error uploading to S3:', err);
                     return res.status(500).send('Error uploading file');
                 } else {
-                    responseData.profile_pic = s3Data.Location;
+                    responseData.image_link = s3Data.Location;
                     try {
                         for (var item of await chroma.findTopKMatches(req.collection, file.path, 5)) {
                             for (var i = 0; i < item.ids[0].length; i++) {

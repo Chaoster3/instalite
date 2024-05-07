@@ -24,9 +24,11 @@ function Signup() {
     birthday: '',
     linked_nconst: '',
     profile_pic: null,
-    uri: ''
+    image_link: ''
   });
 
+  console.log(formData);
+  
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prevFormData) => ({
@@ -93,7 +95,7 @@ function Signup() {
         setMatches(modMatches);
         setFormData((prevFormData) => ({
           ...prevFormData,
-          ['uri']: response.data.uri,
+          ['image_link']: response.data.image_link,
         }));
         setIsFirstPage(false);
       } else if (response.status == 409) {
@@ -146,8 +148,6 @@ function Signup() {
       type: 'password',
     },
   ];
-
-  console.log(matches);
 
   if (isFirstPage) {
     return (

@@ -1,10 +1,15 @@
 const { Chroma } = require("@langchain/community/vectorstores/chroma");
 const { OpenAIEmbeddings, ChatOpenAI } = require("@langchain/openai");
 const { PromptTemplate } = require("@langchain/core/prompts");
+const { StringOutputParser } = require("@langchain/core/output_parsers");
+const { formatDocumentsAsString } = require("langchain/util/document");
+
 const {
     RunnableSequence,
     RunnablePassthrough,
 } = require("@langchain/core/runnables");
+const process = require('process');
+
 const dbsingleton = require('./access/db_access.js');
 
 
@@ -23,6 +28,7 @@ async function rag(query) {
         }));
 
         // Create a vector store and index the documents
+        console.log(documents);
         const vectorStore = await Chroma.fromDocuments(
             documents,
             new OpenAIEmbeddings(),

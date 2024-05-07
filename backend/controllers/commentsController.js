@@ -65,9 +65,28 @@ exports.getCommentContent = async (req, res) => {
   const { postId } = req.params;
 
   try {
-    const comments = await db.send_sql(
-      `SELECT content FROM comments WHERE post_id = ${postId}`
+    const comments = await db.send_sql(`
+      SELECT comments.content AS content, users.username AS author, comments.hashtag_ids AS hashtag_ids, comments.timestamp AS timestamp
+      FROM comments
+        JOIN users ON comments.author_id = users.user_id
+      WHERE comments.post_id = ${postId}`
     );
+
+    // Change hashtag_ids to the names
+    for (let i = 0; i < comments.length; i++) {
+      const hashtag_ids = comments[i].hashtag_ids.split(',');
+      const hashtag_names = [];
+      for (let j = 0; j < hashtag_ids.length; j++) {
+        if (hashtag_ids[j] === '') continue;
+        const hashtag = await db.send_sql(
+          `SELECT name FROM hashtags WHERE hashtag_id = ${hashtag_ids[j]}`
+        );
+        hashtag_names.push(hashtag[0].name);
+      }
+      comments[i].hashtag_ids = hashtag_names;
+    }
+
+
     return res.status(HTTP_STATUS.SUCCESS).json(comments);
   } catch (err) {
     console.log(err);

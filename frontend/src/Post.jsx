@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { BACKEND_URL } from "./utils/constants";
 import axios from "axios";
+import HashTagsSelector from "./HashTagsSelector";
 
 
 const Post = ({ post }) => {
@@ -95,7 +96,6 @@ const Post = ({ post }) => {
     }
   };
 
-
   const getPostComments = async () => {
     try {
       const response = await axios.get(
@@ -103,8 +103,8 @@ const Post = ({ post }) => {
         { withCredentials: true }
       );
       if (response.status === 200) {
-        const commentContent = response.data.map(comment => comment.content);
-        setExistingComments(commentContent);
+        // const commentContent = response.data.map(comment => comment.content);
+        setExistingComments(response.data);
       } else {
         console.error("Error fetching comments");
         setExistingComments([]);
@@ -118,6 +118,7 @@ const Post = ({ post }) => {
   useEffect(() => {
     getPostComments();
   }, []);
+
 
   return (
     <div className="border rounded-md p-2 mb-2">
@@ -141,16 +142,23 @@ const Post = ({ post }) => {
         <hr></hr>
         <h1>Comments</h1>
         <ul>
-          {existingComments.map((comment, index) => (
-            <li key={index}>{comment}</li>
+          {existingComments.map((obj, index) => (
+            <li key={index} style={{ marginBottom: '20px' }}>
+              <p>Content: {obj.content}</p>
+              <p>Author: {obj.author}</p>
+              {obj.hashtag_ids && (
+                <li>hashtag: {obj.hashtag_ids.join(', ')}</li>
+              )}
+              <p>Timestamp: {obj.timestamp}</p>
+            </li>
           ))}
         </ul>
 
         <hr></hr>
         <h1>Post a Comment?</h1>
         <input type="text" value={commentText} onChange={(e) => setCommentText(e.target.value)}/>
-        <button onClick={() => handleCommentSubmit()}> Submit Comment </button>
       </li>
+      <HashTagsSelector handleSubmit={handleCommentSubmit} doneButtonText="Create Comment" finalHashtagNames={commentHashtagNames} setFinalHashtagNames={setCommentHashtagNames} />
     </div>
   )
 }

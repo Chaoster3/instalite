@@ -511,3 +511,55 @@ exports.getFriendRecommendation = async (req, res) => {
       .json({ error: 'Error querying database.' });
   }
 }
+
+exports.checkIfLikedPost = async (req, res) => {
+  const { postId } = req.params;
+  const { user_id } = req.session;
+
+  if (user_id == null) {
+    return res
+      .status(HTTP_STATUS.UNAUTHORIZED)
+      .json({ error: 'User not logged in.' });
+  }
+
+  if (postId == null) {
+    return res
+      .status(HTTP_STATUS.BAD_REQUEST)
+      .json({ error: 'Post id cannot be empty.' });
+  }
+
+  try {
+    const post = await db.send_sql(
+      `SELECT user_ids_who_liked FROM posts WHERE post_id = ${postId}`
+    );
+
+    if (post.length === 0) {
+      return res
+        .status(HTTP_STATUS.NOT_FOUND)
+        .json({ error: 'Post not found.' });
+    }
+
+    if (post[0].user_ids_who_liked === null) {
+      return res
+        .status(HTTP_STATUS.SUCCESS)
+        .json({ liked: false });
+    }
+
+    const user_ids_who_liked = post[0].user_ids_who_liked.split(',');
+
+    if (user_ids_who_liked.includes(String(user_id))) {
+      return res
+        .status(HTTP_STATUS.SUCCESS)
+        .json({ liked: true });
+    } else {
+      return res
+        .status(HTTP_STATUS.SUCCESS)
+        .json({ liked: false });
+    }
+  } catch (err) {
+    console.log(err);
+    return res
+      .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+      .json({ error: 'Error querying database.' });
+  }
+}

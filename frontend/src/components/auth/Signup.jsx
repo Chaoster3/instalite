@@ -21,40 +21,17 @@ function Signup() {
     affiliation: '',
     birthday: '',
     linked_nconst: '',
-    // interest: [],
+    interest_names: [],
   });
 
+  const [searchInput, setSearchInput] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [newTagInput, setNewTagInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [topTenTagsNames, setTopTenTagsNames] = useState([]);
+
   const navigate = useNavigate();
-
-  // const [searchInput, setSearchInput] = useState('');
-  // useEffect(() => {
-  //   // Fetch existing hashtags based on searchInput
-  //   const fetchHashtags = async () => {
-  //     try {
-  //       const response = await axios.get(`${BACKEND_URL}/hashtags/search?q=${searchInput}`);
-  //       setSearchResults(response.data);
-  //     } catch (error) {
-  //       console.error('Error fetching hashtags:', error);
-  //     }
-  //   };
-
-  //   if (searchInput !== '') {
-  //     fetchHashtags();
-  //   } else {
-  //     setSearchResults([]);
-  //   }
-  // }, [searchInput]);
-
-  // const handleInterestSelect = (interest) => {
-  //   // Add selected interest to formData.interest array
-  //   setFormData((prevFormData) => ({
-  //     ...prevFormData,
-  //     interest: [...prevFormData.interest, interest],
-  //   }));
-
-  //   setSearchInput('');
-  //   setSearchResults([]);
-  // };
 
 
   const handleChange = (e) => {
@@ -129,10 +106,92 @@ function Signup() {
         affiliation: '',
         birthday: '',
         linked_nconst: '',
-        // interest: [],
+        interest_names: [],
       });
     }
   };
+
+  
+  // Function to handle search input change
+  const handleSearchInputChange = (e) => {
+    setSearchInput(e.target.value);
+  };
+
+  // Function to handle tag creation input change
+  const handleNewTagInputChange = (e) => {
+    setNewTagInput(e.target.value);
+  };
+
+  const searchTags = async () => {
+    try {
+      setIsLoading(true);
+      setErrorMessage('');
+
+      const response = await axios.get(`${BACKEND_URL}/tags/searchHashTags/${searchInput}`);
+
+      if (response.status === 200) {
+        setSearchResults(response.data);
+      } else {
+        setErrorMessage('Error searching tags. Please try again later.');
+      }
+    } catch (error) {
+      console.error('Error searching tags:', error);
+      setErrorMessage('Error searching tags. Please try again later.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Function to create a new tag
+  const createTag = async () => {
+    try {
+      setIsLoading(true);
+      setErrorMessage('');
+
+      const response = await axiosInstance.post(`${BACKEND_URL}/tags/createTag`, { name: newTagInput });
+
+      if (response.status === 201) {
+        setNewTagInput('');
+        setForm(prevForm => ({
+          ...prevForm,
+          hashtag_names: [...prevForm.hashtag_names, response.data.name]
+        }));
+        // setFinalTags([...finalTags, response.data]);
+      } else if (response.status === 400) {
+        setErrorMessage('Tag already exists.');
+      } else {
+        setErrorMessage('Error creating tag. Please try again later.');
+      }
+    } catch (error) {
+      console.error('Error creating tag:', error);
+      setErrorMessage('Error creating tag. Please try again later.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+
+  const addSearchedTagToFinal = (tag) => {
+    // Check if the tag is already in the finalTags array
+    // const isTagInFinalTags = finalTags.some(finalTag => finalTag.name === tag.name);
+    const isTagInForm = form.hashtag_names.includes(tag.name);
+    if (!isTagInForm) {
+      setForm(prevForm => ({
+        ...prevForm,
+        hashtag_names: [...prevForm.hashtag_names, tag.name]
+      }));
+    }
+  };
+
+  // Function to remove a final tag from the finalTags array
+  const removeFinalTag = (tagName) => {
+    // setFinalTags(finalTags.filter(tag => tag.name !== tagName));
+    setForm(prevForm => ({
+      ...prevForm,
+      hashtag_names: prevForm.hashtag_names.filter(tag => tag !== tagName)
+    }));
+  };
+
 
   const inputFields = [
     { name: 'firstName', placeholder: 'First Name', type: 'text' },
@@ -152,11 +211,11 @@ function Signup() {
       placeholder: 'Linked Nconst',
       type: 'text',
     },
-    // {
-    //   name: "interest",
-    //   placeholder: "Interest",
-    //   type: "text"
-    // }
+    {
+      name: "interest",
+      placeholder: "Interest",
+      type: "text"
+    }
   ];
 
 
@@ -220,6 +279,54 @@ function Signup() {
               {/* <label className="before:content[' '] after:content[' '] pointer-events-none absolute left-0 -top-1.5 flex h-full w-full select-none !overflow-visible truncate text-[11px] font-normal leading-tight text-gray-500 transition-all before:pointer-events-none before:mt-[6.5px] before:mr-1 before:box-border before:block before:h-1.5 before:w-2.5 before:rounded-tl-md before:border-t before:border-l before:border-blue-gray-200 before:transition-all after:pointer-events-none after:mt-[6.5px] after:ml-1 after:box-border after:block after:h-1.5 after:w-2.5 after:flex-grow after:rounded-tr-md after:border-t after:border-r after:border-blue-gray-200 after:transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:leading-[4.1] peer-placeholder-shown:text-blue-gray-500 peer-placeholder-shown:before:border-transparent peer-placeholder-shown:after:border-transparent peer-focus:text-[11px] peer-focus:leading-tight peer-focus:text-gray-900 peer-focus:before:border-t-2 peer-focus:before:border-l-2 peer-focus:before:!border-gray-900 peer-focus:after:border-t-2 peer-focus:after:border-r-2 peer-focus:after:!border-gray-900 peer-disabled:text-transparent peer-disabled:before:border-transparent peer-disabled:after:border-transparent peer-disabled:peer-placeholder-shown:text-blue-gray-500">
                 {"Hashtags"}
               </label> */}
+            </div>
+            <br></br>
+            <h2>Choose New Tags</h2>
+            <div>
+              <input
+                type="text"
+                placeholder="Search for tags"
+                value={searchInput}
+                onChange={handleSearchInputChange}
+              />
+              <button onClick={searchTags}>Search</button>
+            </div>
+
+            {isLoading && <div>Loading...</div>}
+            {errorMessage && <div>{errorMessage}</div>}
+
+            <div>
+              {searchResults && searchResults.map((tag) => (
+                <button key={tag.id} onClick={() => addSearchedTagToFinal(tag)}>
+                  {tag.name}
+                </button>
+              ))}
+            </div>
+
+            <div>
+              <input
+                type="text"
+                placeholder="Enter new tag"
+                value={newTagInput}
+                onChange={handleNewTagInputChange}
+              />
+              <button onClick={createTag}>Create</button>
+            </div>
+
+            {/* Render finalTags */}
+            <br></br>
+            <hr />
+            <br></br>
+            <div>
+              <h2>Final Tags</h2>
+              {form.hashtag_names.map((tagName) => (
+                <button
+                  key={tagName}
+                  onClick={() => removeFinalTag(tagName)}
+                >
+                  {tagName}
+                </button>
+              ))}
             </div>
           </>
         )}

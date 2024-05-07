@@ -21,7 +21,6 @@ const CreatePosts = () => {
   const [newTagInput, setNewTagInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [finalTags, setFinalTags] = useState([]);
 
 
   const handleChange = (e) => {
@@ -33,13 +32,6 @@ const CreatePosts = () => {
   };
 
   const handleSubmit = async (e) => {
-    // const finalTagsNames = finalTags.map(tag => tag.name);
-    // setForm(prevForm => ({
-    //   ...prevForm,
-    //   hashtags: finalTagsNames
-    // }));
-
-    console.log("submitted form", form)
     e.preventDefault();
     try {
       const response = await axiosInstance.post(
@@ -136,10 +128,6 @@ const CreatePosts = () => {
         hashtag_names: [...prevForm.hashtag_names, tag.name]
       }));
     }
-
-    // if (!isTagInFinalTags) {
-    //   setFinalTags([...finalTags, { id: tag.id, name: tag.name }]);
-    // }
   };
 
   // Function to remove a final tag from the finalTags array

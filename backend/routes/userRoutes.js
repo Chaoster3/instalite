@@ -30,6 +30,7 @@ router.route('/getUsernameFromID/:userId').get(userController.getUsernameFromID)
 router.route('/likePost/:postId').get(userController.likePost);
 router.route('/getLikedPosts').get(userController.getLikedPosts);
 router.route('/unlikePost/:postId').get(userController.unlikePost);
+router.route('/checkIfLikedPost/:postId').get(userController.checkIfLikedPost);
 
 // Friend recommendation
 router.route('/getFriendRecommendation').get(userController.getFriendRecommendation);

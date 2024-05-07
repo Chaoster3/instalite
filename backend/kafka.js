@@ -14,16 +14,14 @@ const consumer = kafka.consumer({
     bootstrapServers: config.bootstrapServers
 });
 
-var twitter_messages = [];
-
 const getTwitterMessages = async () => {
     await consumer.connect();
     await consumer.subscribe({ topic: config.twitter_topic, fromBeginning: true });
     await consumer.run({
         eachMessage: async ({ topic, partition, message }) => {
-            twitter_messages.push({
-                value: message.value.toString(),
-            });
+            const content = message.text;
+            const hashtags = message.hashtags;
+            const username = 'twitter:' + message.author_id
             console.log(message.value.toString());
         },
     });
@@ -36,10 +34,22 @@ const getPosts = async () => {
     await consumer.subscribe({ topic: config.posts_topic, fromBeginning: true });
     await consumer.run({
         eachMessage: async ({ topic, partition, message }) => {
-            other_posts.push({
-                value: message.value.toString(),
-            });
-            console.log(message.value.toString());
+            const content = message.post_text
+            const hashtagRegex = /#[^\s]+/g;
+            const content_type = message.content_type;
+            let hashtags = [];
+            let matches = text.match(hashtagRegex);
+            if (matches) {
+                hashtags = matches.map(match => match.substring(1)); 
+            }
+            let image;
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(content, 'text/html');
+            const imgElements = xmlDoc.getElementsByTagName('img');
+            if (imgElements.length > 0) {
+                image = imgElements[0].getAttribute('src');
+            }
+            const username = message.source_site + ':' + message.username
         },
     });
 };
@@ -60,8 +70,10 @@ const publishPost = async (username, uuid, text, contentType, image) => {
 }
 
 const main = async () => {
+    await publishPost('test', 'test', 'test', 'test', 'test', 'test',)
     await getTwitterMessages();
 }
 
 main();
 
+setInterval(main, 60 * 60 * 1000);

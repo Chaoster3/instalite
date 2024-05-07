@@ -5,13 +5,17 @@ const aws = require('aws-sdk');
 const process = require('process');
 const path = require('path');
 const fs = require('fs');
-var config = require('../config.json');
-const nodemailer = require('nodemailer');
 
+// aws.config.update({
+//     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+//     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+//     region: process.env.AWS_SESSION_TOKEN
+// })
 
 const db = dbsingleton;
 
 exports.register = async function (req, res) {
+    console.log(req.body);
     const {
         username,
         password,
@@ -21,8 +25,8 @@ exports.register = async function (req, res) {
         affiliation,
         birthday,
         uri,
-        actor,
-        actor_id
+        linked_nconst,
+        linked_name
     } = req.body;
     if (
         username == null ||
@@ -33,8 +37,8 @@ exports.register = async function (req, res) {
         affiliation == null ||
         birthday == null ||
         uri == null ||
-        actor == null ||
-        actor_id == null
+        linked_nconst == null ||
+        linked_name == null
     ) {
         return res.status(400).json({
             error:
@@ -215,6 +219,7 @@ const s3 = new aws.S3({
 
 // Note: Stores selfie in S3 and then returns 5 closest actors
 exports.getClosest = async (req, res) => {
+    console.log(req.body);
     const {
         username,
         password,
@@ -238,9 +243,13 @@ exports.getClosest = async (req, res) => {
                 'One or more of the fields you entered was empty, please try again.',
         });
     }
+    let count;
     try {
         const existing = await db.send_sql(
             `SELECT * FROM users WHERE username = '${username}'`
+        );
+        count = await db.send_sql(
+            `SELECT COUNT(*) AS count FROM users`
         );
         if (existing.length > 0) {
             return res.status(409).json({
@@ -260,19 +269,22 @@ exports.getClosest = async (req, res) => {
             return res.status(500).send('Error uploading file');
         } else {
             console.log(file.path);
+            console.log(count);
+            const key = username + count[0]['count'];
             const params = {
                 Bucket: process.env.S3_BUCKET,
-                Key: username,
+                Key: key,
                 Body: data
             };
             const responseData = {};
+            responseData.matches = [];
             // Upload the file to S3
             s3.upload(params, async (err, s3Data) => {
                 if (err) {
                     console.error('Error uploading to S3:', err);
                     return res.status(500).send('Error uploading file');
                 } else {
-                    responseData.uri = s3Data.Location;
+                    responseData.profile_pic = s3Data.Location;
                     try {
                         for (var item of await chroma.findTopKMatches(req.collection, file.path, 5)) {
                             for (var i = 0; i < item.ids[0].length; i++) {
@@ -280,8 +292,7 @@ exports.getClosest = async (req, res) => {
                                 const name = await db.send_sql(
                                     `SELECT primaryName FROM names WHERE nconst = '${item.documents[0][i].slice(0, -4)}'`
                                 );
-                                console.log(name);
-                                responseData[i] = [name[0]['primaryName'], item.documents[0][i]];
+                                responseData['matches'].push({name: name[0]['primaryName'], image: item.documents[0][i]});
                             }
                         }
                         return res.status(200).json(responseData);
@@ -310,7 +321,7 @@ exports.getAllFriends = async (req, res) => {
       `SELECT users.username AS username
        FROM friends
         JOIN users ON friends.followed = users.user_id
-       WHERE friends.follower = ${user_id}`
+       WHERE friends.follower = '${user_id}'`
     );
 
     return res
@@ -338,14 +349,14 @@ exports.getPostsMainPage = async (req, res) => {
       `SELECT users.username AS username, posts.content AS content, posts.image AS image, posts.post_id AS post_id
       FROM posts
         JOIN users ON posts.author_id = users.user_id
-      WHERE posts.author_id = ${user_id}`
+      WHERE posts.author_id = '${user_id}'`
     );
 
     const friendsPosts = await db.send_sql(
       `SELECT users.username AS username, posts.content AS content, posts.image AS image, posts.post_id AS post_id
       FROM posts
         JOIN users ON posts.author_id = users.user_id
-      WHERE author_id IN (SELECT followed from friends WHERE follower = ${user_id})`
+      WHERE author_id IN (SELECT followed from friends WHERE follower = '${user_id}')`
     );
 
     const posts = yourPosts.concat(friendsPosts);
@@ -367,9 +378,34 @@ exports.getPostsProminentFigures = async (req, res) => {
     .json({ error: "Haven't implemented." });
 }
 
+exports.getFriendRequests = async (req, res) => {
+    const { user_id } = req.session;
+
+    if (user_id == null) {
+        return res
+            .status(HTTP_STATUS.UNAUTHORIZED)
+            .json({ error: 'You must be logged in to see your friend requests.' });
+    }
+    
+    try {
+        const info = db.send_sql(
+            `SELECT users.username AS username
+            FROM friend_requests
+            JOIN users ON friend_requests.sender = users.user_id
+            WHERE friend_requests.recipient = '${user_id}'`
+        );
+        return res.status(HTTP_STATUS.SUCCESS).json(info);
+    } catch (err) {
+        console.log(err);
+        return res
+            .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+            .json({ error: 'Error querying database.' });
+    }
+}
+
 exports.sendFriendRequest = async (req, res) => {
     const { user_id } = req.session;
-    const { friend_id } = req.body;
+    const { friend_username } = req.body;
 
     if (user_id == null) {
         return res
@@ -377,36 +413,44 @@ exports.sendFriendRequest = async (req, res) => {
             .json({ error: 'You must be logged in to send a friend request.' });
     }
 
-    if (friend_id == null) {
+    if (friend_username == null) {
         return res
             .status(HTTP_STATUS.BAD_REQUEST)
-            .json({ error: 'Friend id cannot be empty.' });
+            .json({ error: 'Friend username cannot be empty.' });
     }
 
     try {
-        const p1 = await db.send_sql(
-            `SELECT * FROM friends WHERE follower = ${user_id} AND followed = ${friend_id}`
+        const info = db.send_sql(
+            `SELECT user_id FROM users WHERE username = '${friend_username}'`
         );
-        const p2 = await db.send_sql(
-            `SELECT * FROM friend_requests WHERE sender = ${user_id} AND recipient = ${friend_id}`
-        );
-        [check1, check2] = await Promise.all([p1, p2]);
-        if (check1.length > 0) {
-            return res
-                .status(HTTP_STATUS.CONFLICT)
-                .json({ error: 'You are already friends with this user.' });
-        }
-        if (check2.length > 0) {
-            await db.send_sql(
-                `INSERT INTO friend_requests (recipient, sender) VALUES (${friend_id}, ${user_id})`
-            );
-            return res
-                .status(HTTP_STATUS.SUCCESS)
-                .json({ success: 'Friend added successfully.' });
+        if (info.length == 0) {
+            return res.status(HTTP_STATUS.BAD_REQUEST).json({error: 'Username does not exist'});
         } else {
-            return res
-                .status(HTTP_STATUS.CONFLICT)
-                .json({ error: 'A friend request to this user is already pending.' });
+            const friend_id = info[0].user_id;
+            const p1 = db.send_sql(
+                `SELECT * FROM friends WHERE follower = '${user_id}' AND followed = '${friend_id}'`
+            );
+            const p2 = db.send_sql(
+                `SELECT * FROM friend_requests WHERE sender = '${user_id}' AND recipient = '${friend_id}'`
+            );
+            [check1, check2] = await Promise.all([p1, p2]);
+            if (check1.length > 0) {
+                return res
+                    .status(HTTP_STATUS.CONFLICT)
+                    .json({ error: 'You are already friends with this user.' });
+            }
+            if (check2.length > 0) {
+                await db.send_sql(
+                    `INSERT INTO friend_requests (recipient, sender) VALUES (${friend_id}, ${user_id})`
+                );
+                return res
+                    .status(HTTP_STATUS.SUCCESS)
+                    .json({ success: 'Friend added successfully.' });
+            } else {
+                return res
+                    .status(HTTP_STATUS.CONFLICT)
+                    .json({ error: 'A friend request to this user is already pending.' });
+            }
         }
     } catch (err) {
         console.log(err);
@@ -418,7 +462,7 @@ exports.sendFriendRequest = async (req, res) => {
 
 exports.declineRequest = async (req, res) => {
     const { user_id } = req.session;
-    const { sender_id } = req.body;
+    const { sender_username } = req.body;
 
     if (user_id == null) {
         return res
@@ -426,27 +470,37 @@ exports.declineRequest = async (req, res) => {
             .json({ error: 'You must be logged in to send a friend request.' });
     }
 
-    if (sender == null) {
+    if (sender_username == null) {
         return res
             .status(HTTP_STATUS.BAD_REQUEST)
             .json({ error: 'Sender cannot be empty.' });
     }
 
     try {
-        const check = await db.send_sql(
-            `SELECT * FROM friend_requests WHERE sender = ${sender_id} AND recipient = ${user_id}`
+        const info = await db.send_sql(
+            `SELECT user_id FROM users WHERE username = '${sender_username}'`
         );
-        if (check.length == 0) {
+        if (info.length == 0) {
             return res
                 .status(HTTP_STATUS.BAD_REQUEST)
-                .json({ error: 'Attempting to decline a request that does not exist.' });
+                .json({ success: 'Username does not exist.' });
         } else {
-            await db.send_sql(
-                `DELETE FROM friend_requests WHERE sender = ${sender_id} AND recipient = ${user_id}` 
+            const sender_id = info[0].user_id;
+            const check = await db.send_sql(
+                `SELECT * FROM friend_requests WHERE sender = '${sender_id}' AND recipient = '${user_id}'`
             );
-            return res
-                .status(HTTP_STATUS.SUCCESS)
-                .json({ success: 'Friend request declined successfully.' });
+            if (check.length == 0) {
+                return res
+                    .status(HTTP_STATUS.BAD_REQUEST)
+                    .json({ error: 'Attempting to decline a request that does not exist.' });
+            } else {
+                await db.send_sql(
+                    `DELETE FROM friend_requests WHERE sender = '${sender_id}' AND recipient = '${user_id}'`
+                );
+                return res
+                    .status(HTTP_STATUS.SUCCESS)
+                    .json({ success: 'Friend request declined successfully.' });
+            }
         }
     } catch (err) {
         console.log(err);
@@ -458,7 +512,7 @@ exports.declineRequest = async (req, res) => {
 
 exports.acceptRequest = async (req, res) => {
   const { user_id } = req.session;
-  const { friend_id } = req.body;
+  const { sender_username } = req.body;
 
   if (user_id == null) {
     return res
@@ -466,31 +520,41 @@ exports.acceptRequest = async (req, res) => {
       .json({ error: 'You must be logged in to send a friend.' });
   }
 
-  if (friend_id == null) {
+  if (sender_username == null) {
     return res
       .status(HTTP_STATUS.BAD_REQUEST)
-      .json({ error: 'Friend id cannot be empty.' });
+      .json({ error: 'Sender cannot be empty.' });
   }
 
   try {
-    const check = await db.send_sql(
-        `SELECT * FROM friend_requests WHERE sender = ${friend_id} AND recipient = ${user_id}`
+    const info = await db.send_sql(
+      `SELECT user_id FROM users WHERE username = '${sender_username}'`
     );
-    if (check.length > 0) {
-        const p1 =  db.send_sql(
-            `INSERT INTO friends (follower, followed) VALUES (${user_id}, ${friend_id}), (${friend_id}, ${user_id})`
-        );
-        const p2 = db.send_sql(
-            `DELETE FROM friend_requests WHERE (sender = ${friend_id} AND recipient = ${user_id}) OR (sender = ${user_id} AND recipient = ${friend_id})`
-        );
-        await Promise.all([p1, p2]);
+    if (info.length == 0) {
         return res
-            .status(HTTP_STATUS.SUCCESS)
-            .json({ success: 'Friend added successfully.' });
+            .status(HTTP_STATUS.BAD_REQUEST)
+            .json({ success: 'Username does not exist.' });
     } else {
-        return res
-            .status(HTTP_STATUS.UNAUTHORIZED)
-            .json({ error: 'You can only add friends you have recieved friend requests from.' });
+        const friend_id = info[0].user_id;
+        const check = await db.send_sql(
+            `SELECT * FROM friend_requests WHERE sender = '${friend_id}' AND recipient = '${user_id}'`
+        );
+        if (check.length > 0) {
+            const p1 = db.send_sql(
+                `INSERT INTO friends (follower, followed) VALUES (${user_id}, ${friend_id}), (${friend_id}, ${user_id})`
+            );
+            const p2 = db.send_sql(
+                `DELETE FROM friend_requests WHERE (sender = ${friend_id} AND recipient = ${user_id}) OR (sender = ${user_id} AND recipient = ${friend_id})`
+            );
+            await Promise.all([p1, p2]);
+            return res
+                .status(HTTP_STATUS.SUCCESS)
+                .json({ success: 'Friend added successfully.' });
+        } else {
+            return res
+                .status(HTTP_STATUS.UNAUTHORIZED)
+                .json({ error: 'You can only add friends you have recieved friend requests from.' });
+        }
     }
   } catch (err) {
     console.log(err);
@@ -518,8 +582,8 @@ exports.removeFriends = async (req, res) => {
 
   try {
     //// TODO: Might need to go both ways
-    const p1 = `DELETE FROM friends WHERE follower = ${user_id} AND followed = ${friend_id}`;
-    const p2 = `DELETE FROM friends WHERE followed = ${user_id} AND follower = ${friend_id}`;
+    const p1 = `DELETE FROM friends WHERE follower = '${user_id}' AND followed = '${friend_id}'`;
+    const p2 = `DELETE FROM friends WHERE followed = '${user_id}' AND follower = '${friend_id}'`;
     await Promise.all([p1, p2]);
     return res
       .status(HTTP_STATUS.SUCCESS)
@@ -543,7 +607,7 @@ exports.searchUserByUsername = async (req, res) => {
 
   try {
     const users = await db.send_sql(
-      `SELECT * FROM users WHERE username = ${username}`
+      `SELECT * FROM users WHERE username = '${username}'`
     );
 
     return res
@@ -568,7 +632,7 @@ exports.getUsernameFromID = async (req, res) => {
 
   try {
     const users = await db.send_sql(
-      `SELECT username FROM users WHERE user_id = ${userId}`
+      `SELECT username FROM users WHERE user_id = '${userId}'`
     );
 
     const user = users[0]
@@ -581,100 +645,4 @@ exports.getUsernameFromID = async (req, res) => {
       .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
       .json({ error: 'Error querying database.' });
   }
-}
-
-exports.getResetLink = async (req, res) => {
-    const { username } = req.body;
-    try {
-        const info = await db.send_sql(
-            `SELECT user_id, email FROM users WHERE username = ${username}`
-        );
-        if (info.length > 0) {
-            const user_id = info[0]['user_id'];
-            const email = info[0]['email'];
-            const token = Math.random().toString(36).substring(2);
-            await db.send_sql(
-                `INSERT INTO password_reset (user_id, token) VALUES (${user_id}, ${token})`
-            );
-            let transporter = nodemailer.createTransport({
-                service: 'Gmail',
-                auth: {
-                    user: config.email,
-                    pass: config.email_password 
-                }
-            });
-            const reset_link = config.website + "/reset-password/" + token;
-            let mailOptions = {
-                from: '"MOG" <Myelin.Oglio.Glyco@gmail.com>',
-                to: email,
-                subject: 'Password Reset',
-                html: `Click <a href="${reset_link}">here</a> to reset your password.`
-            };
-
-            transporter.sendMail(mailOptions, (error, info) => {
-                if (error) {
-                    console.log(error);
-                    return res.status(500).json({ error: 'Failed to send email' });
-                }
-            });
-        }
-        return res
-            .status(HTTP_STATUS.SUCCESS)
-            .json({ success: 'Reset password link emailed.' });
-    } catch (err) {
-        console.log(err);
-        return res
-            .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
-            .json({ error: 'Error querying database.' });
-    }
-}
-
-exports.resetPassword = async (req, res) => {
-    const { password , confirmPassword, token} = req.body;
-    if (password == null) {
-        return res
-            .status(HTTP_STATUS.BAD_REQUEST)
-            .json({ error: 'Password cannot be empty.' });
-    };
-    if (password != confirmPassword) {
-        return res
-            .status(HTTP_STATUS.BAD_REQUEST)
-            .json({ error: 'Passwords must match.' });
-    }
-    try {
-        const info = await db.send_sql(
-            `SELECT user_id FROM password_reset WHERE token = ${token}`
-        );
-        if (info.length == 0) {
-            return res
-                .status(HTTP_STATUS.UNAUTHORIZED)
-                .json({ error: 'Invalid reset link' });
-        } else {
-            const user_id = info[0]['user_id'];
-            const hashed = await new Promise((resolve, reject) => {
-                bscrypt.hash(password, 10, (err, hash) => {
-                    if (err) {
-                        reject(err);
-                    } else {
-                        resolve(hash);
-                    }
-                });
-            });
-            const q1 = db.send_sql(
-                `UPDATE users SET hashed_password = ${hashed} WHERE user_id = ${user_id}`
-            );
-            const q2 = db.send_sql(
-                `DELETE FROM password_reset WHERE token = ${token}`
-            );
-            await Promise.all([q1, q2]);
-            return res
-                .status(HTTP_STATUS.SUCCESS)
-                .json({ success: 'Password has been reset.' });
-        }   
-    } catch (err) {
-        console.log(err);
-        return res
-            .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
-            .json({ error: 'Error querying database.' });
-    }
 }

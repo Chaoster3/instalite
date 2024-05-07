@@ -85,6 +85,12 @@ function Login() {
             Sign up
           </Link>
         </p>
+        <Link
+          to="/forgotPassword"
+          className="block ml-1 font-sans text-sm antialiased font-bold leading-normal text-blue-gray-900"
+        >
+          Forgot Password?
+        </Link>
       </div>
     </div>
   );

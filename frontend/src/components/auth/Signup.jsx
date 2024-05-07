@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import { BACKEND_URL } from "../../utils/constants";
+// import { l } from 'vite/dist/node/types.d-aGj9QkWt';
+import alertGradient from '@material-tailwind/react/theme/components/alert/alertGradient';
 
 function Signup() {
   const [isFirstPage, setIsFirstPage] = useState(true);
@@ -10,6 +12,7 @@ function Signup() {
 
   const navigate = useNavigate();
 
+  const [matches, setMatches] = useState(null);
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -20,6 +23,8 @@ function Signup() {
     affiliation: '',
     birthday: '',
     linked_nconst: '',
+    profile_pic: null,
+    uri: ''
   });
 
   const handleChange = (e) => {
@@ -30,8 +35,24 @@ function Signup() {
     }));
   };
 
-  const handleSignup1 = (e) => {
+  const handleChangeFile = (e) => {
+    setFormData((prevFormData) => ({
+      ...prevFormData,
+      ['profile_pic']: e.target.files[0],
+    }));
+  };
+
+  const handlePress = (name, image) => {
+    setFormData((prevFormData) => ({
+      ...prevFormData,
+      ['linked_nconst']: image.substring(-4),
+      ['linked_name']: name
+    }));
+  }
+
+  const handleSignup1 = async (e) => {
     e.preventDefault();
+    console.log(formData);
     if (!formData.email.includes('@') && !formData.email.includes('.')) {
       alert('Invalid email');
       return;
@@ -56,30 +77,42 @@ function Signup() {
       alert('Passwords do not match');
       return;
     }
-    console.log('Sign Up clicked');
-    setIsFirstPage(false);
+    try {
+      const body = new FormData();
+      for (const key in formData) {
+        body.append(key, formData[key]);
+      }
+
+      const response = await axios.post(`${BACKEND_URL}/users/getClosest`, body)
+      if (response.status === 200) {
+        const resMatches = response.data.matches
+        const modMatches = resMatches.map(match => ({
+          ...match,
+          image: BACKEND_URL + '/images/' + match.image
+        }))
+        setMatches(modMatches);
+        setFormData((prevFormData) => ({
+          ...prevFormData,
+          ['uri']: response.data.uri,
+        }));
+        setIsFirstPage(false);
+      } else if (response.status == 409) {
+        alert('An account with this username already exists');
+      }
+    } catch (error) {
+      console.log('Sign Up failed');
+      console.log(error);
+    }
   };
 
   const handleSignup2 = async (e) => {
     e.preventDefault();
 
     try {
-      const body = new FormData();
-      for (const key in formData) {
-        body.append(key, formData[key]);
-      }
-      //body.append('profilePoto', profilePhoto);
-      // const response = await axios.post(`${baseURL}/users/register`, body, {
-      //   headers: {
-      //     'Content-Type': 'multipart/form-data',
-      //   },
-      // });
-
       const response = await axios.post(`${BACKEND_URL}/users/register`, formData);
 
       if (response.status === 201) {
-        console.log('Sign Up successful');
-        navigate('/');
+        response.data.matches
       }
     } catch (error) {
       console.log('Sign Up failed');
@@ -94,6 +127,7 @@ function Signup() {
         affiliation: '',
         birthday: '',
         linked_nconst: '',
+        linked_name: ''
       });
     }
   };
@@ -112,6 +146,8 @@ function Signup() {
       type: 'password',
     },
   ];
+
+  console.log(matches);
 
   if (isFirstPage) {
     return (
@@ -141,9 +177,7 @@ function Signup() {
               accept="image/*"
               capture="user"
               name="Profile Picture"
-              onChange={(e) => {
-                setProfilePhoto(e.target.files[0]);
-              }}
+              onChange={handleChangeFile}
               placeholder=" "
               className="w-full h-full px-3 py-3 font-sans text-sm font-normal transition-all bg-transparent border rounded-md peer border-blue-gray-200 border-t-transparent text-blue-gray-700 outline outline-0 placeholder-shown:border placeholder-shown:border-blue-gray-200 placeholder-shown:border-t-blue-gray-200 focus:border-2 focus:border-gray-900 focus:border-t-transparent focus:outline-0 disabled:border-0 disabled:bg-blue-gray-50"
             />
@@ -194,12 +228,25 @@ function Signup() {
     return (
       <div className="h-screen w-screen flex justify-center flex-col text-gray-700 w-96 rounded-xl bg-clip-border mx-auto">
         <div className="text-center text-2xl font-bold mb-4">
-          Welcome to Myelin Oligodendrocyte Glycoprotein
+          Choose your Actor:
         </div>
-
+        <div className="text-center text-2xl font-bold mb-4 flex flex-wrap justify-center">
+          {matches && matches.map(match => (
+            <div key={match.name} onClick={() => handlePress(match.name, match.image)} className={`flex flex-col items-center justify-center p-4 rounded-lg cursor-pointer shadow-md mr-4 mb-4 ${formData.linked_name === match.name ? 'bg-gray-300' : 'bg-white'}`}>
+              <div className="text-lg font-bold mb-2">{match.name}</div>
+              <img src={match.image} alt={match.name} className="h-40 w-40 rounded-lg mb-2" />
+            </div>
+          ))}
+        </div>
+        <button
+          onClick={handleSignup2}
+          className="block w-full select-none rounded-lg bg-gradient-to-tr from-gray-900 to-gray-800 py-3 px-6 text-center align-middle font-sans text-xs font-bold uppercase text-white shadow-md shadow-gray-900/10 transition-all hover:shadow-lg hover:shadow-gray-900/20 active:opacity-[0.85] disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none"
+          type="button"
+        >
+          Register
+        </button>
       </div>
     )
   }
-}
-
+};
 export default Signup;

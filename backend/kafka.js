@@ -24,6 +24,7 @@ const getTwitterMessages = async () => {
             twitter_messages.push({
                 value: message.value.toString(),
             });
+            console.log(message.value.toString());
         },
     });
 };
@@ -38,11 +39,13 @@ const getPosts = async () => {
             other_posts.push({
                 value: message.value.toString(),
             });
+            console.log(message.value.toString());
         },
     });
 };
 
 const publishPost = async (username, uuid, text, contentType, image) => {
+    await producer.connect();
     const post = {
         username,
         source_site: config.site_id,
@@ -56,4 +59,9 @@ const publishPost = async (username, uuid, text, contentType, image) => {
     })
 }
 
-getTwitterMessages().then(() => console.log(twitter_messages));
+const main = async () => {
+    await getTwitterMessages();
+}
+
+main();
+

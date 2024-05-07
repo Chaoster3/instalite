@@ -151,6 +151,15 @@ async function create_tables(db) {
     );'
   );
 
+  // Password reset table
+  var q7 = db.create_tables(
+    'CREATE TABLE IF NOT EXISTS password_reset ( \
+      user_id INT, \
+      token VARCHAR(255), \
+      FOREIGN KEY (user_id) REFERENCES users(user_id) \
+    );'
+  );
+
   return await Promise.all([q0, q1, q2, q3, q4, q5, q6]);
 }
 

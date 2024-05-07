@@ -1,6 +1,10 @@
 const bcrypt = require('bcrypt');
 const dbsingleton = require('../access/db_access');
 const HTTP_STATUS = require('../utils/httpStatus');
+const nodemailer = require('nodemailer');
+var config = require('../config.json');
+
+
 const db = dbsingleton;
 
 exports.register = async function (req, res) {
@@ -225,13 +229,6 @@ exports.changeEmail = async (req, res) => {
   }
 };
 
-// A "forgot password" option that sends to the user's email address a password reset token and a link to the password reset screen;
-exports.resetPassword = async (req, res) => {
-  return res
-    .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
-    .json({ error: "Haven't implemented." });
-}
-
 
 // Checks if the user is signed in
 exports.checkIfLoggedIn = async (req, res) => {
@@ -239,5 +236,104 @@ exports.checkIfLoggedIn = async (req, res) => {
     return res.status(HTTP_STATUS.SUCCESS).json({ data: req.session.username });
   } else {
     return res.status(HTTP_STATUS.UNAUTHORIZED).json({ data: false });
+  }
+}
+
+exports.getResetLink = async (req, res) => {
+  const username = req.query.username;
+  console.log(username);
+  try {
+    const info = await db.send_sql(
+      `SELECT user_id, email FROM users WHERE username = '${username}'`
+    );
+    if (info.length > 0) {
+      const user_id = info[0]['user_id'];
+      const email = info[0]['email'];
+      const token = Math.random().toString(36).substring(2);
+      await db.send_sql(
+        `INSERT INTO password_reset (user_id, token) VALUES (${user_id}, '${token}')`
+      );
+      let transporter = nodemailer.createTransport({
+        service: 'Gmail',
+        auth: {
+          user: config.email,
+          pass: config.email_password
+        }
+      });
+      const reset_link = config.website + "resetPassword/" + token;
+      let mailOptions = {
+        from: '"MOG" <Myelin.Oglio.Glyco@gmail.com>',
+        to: email,
+        subject: 'Password Reset',
+        html: `Click <a href="${reset_link}">here</a> to reset your password.`
+      };
+
+      transporter.sendMail(mailOptions, (error, info) => {
+        if (error) {
+          console.log(error);
+          throw new Error('Error sending email');
+        }
+      });
+    }
+    return res
+      .status(HTTP_STATUS.SUCCESS)
+      .json({ success: 'Reset password link emailed.' });
+  } catch (err) {
+    console.log(err);
+    return res
+      .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+      .json({ error: 'Error sending email.' });
+  }
+}
+
+exports.resetPassword = async (req, res) => {
+  const { password, confirmPassword, token } = req.body;
+  console.log(req.body);
+  if (password == null) {
+    return res
+      .status(HTTP_STATUS.BAD_REQUEST)
+      .json({ error: 'Password cannot be empty.' });
+  };
+  if (password != confirmPassword) {
+    return res
+      .status(HTTP_STATUS.BAD_REQUEST)
+      .json({ error: 'Passwords must match.' });
+  }
+  try {
+    const info = await db.send_sql(
+      `SELECT user_id FROM password_reset WHERE token = '${token}'`
+    );
+    console.log(info)
+    if (info.length == 0) {
+      return res
+        .status(HTTP_STATUS.UNAUTHORIZED)
+        .json({ error: 'Invalid reset link' });
+    } else {
+      const user_id = info[0]['user_id'];
+      const hashed = await new Promise((resolve, reject) => {
+        bcrypt.hash(password, 10, (err, hash) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(hash);
+          }
+        });
+      });
+      const q1 = db.send_sql(
+        `UPDATE users SET hashed_password = '${hashed}' WHERE user_id = '${user_id}'`
+      );
+      const q2 = db.send_sql(
+        `DELETE FROM password_reset WHERE token = '${token}'`
+      );
+      await Promise.all([q1, q2]);
+      return res
+        .status(HTTP_STATUS.SUCCESS)
+        .json({ success: 'Password has been reset.' });
+    }
+  } catch (err) {
+    console.log(err);
+    return res
+      .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+      .json({ error: 'Error querying database.' });
   }
 }

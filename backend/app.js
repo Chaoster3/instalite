@@ -10,6 +10,7 @@ const path = require('path');
 const { ConnectContactLens } = require('aws-sdk');
 const app = express();
 const session = require('express-session');
+const signature = require('cookie-signature')
 
 let collection;
 
@@ -21,6 +22,36 @@ app.use((req, res, next) => {
     next();
 });
 // Up to here
+
+const sessionMiddleWear = session({
+  secret: 'nets2120_insecure',
+  saveUninitialized: true,
+  cookie: {
+    httpOnly: false,
+    sameSite: "none",
+    secure: false
+  },
+  resave: true
+})
+
+app.use(sessionMiddleWear);
+
+app.use((req, res, next) => {
+  const myNext = () => {
+    var name = 'connect.sid'
+    const secret = 'nets2120_insecure'
+    var signed = 's:' + signature.sign(req.sessionID, secret)
+
+    const sessionIDCookieValue = req.sessionID;
+    res.cookie("connect.sid", signed, {
+      secure: "false",
+      sameSite: "none"
+    });
+
+    next();
+  }
+  sessionMiddleWear(req, res, myNext);
+})
 
 app.use(express.json());
 app.use('/images', express.static(path.join(__dirname, '/images')));

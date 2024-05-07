@@ -73,6 +73,7 @@ async function create_tables(db) {
       birthday DATE, \
       interests VARCHAR(255), \
       logged_in BOOLEAN DEFAULT FALSE, \
+      rank_distribution BLOB, \
       PRIMARY KEY(user_id), \
       FOREIGN KEY(linked_nconst) REFERENCES names(nconst) \
     );'

@@ -107,6 +107,13 @@ function Signup() {
 
       if (response.status === 201) {
         console.log('Sign Up successful');
+
+        // Log the user in
+        await axiosInstance.post(`${BACKEND_URL}/users/login`, {
+          username: formData.username,
+          password: formData.password,
+        });
+
         navigate('/');
       }
     } catch (error) {
@@ -155,8 +162,6 @@ function Signup() {
       type: 'text',
     },
   ];
-
-
 
   return (
     <div className="h-screen w-screen flex justify-center flex-col text-gray-700 w-96 rounded-xl bg-clip-border mx-auto">
@@ -211,8 +216,6 @@ function Signup() {
               ))}
             </div>
             <HashTagsSelector handleSubmit={handleSignup2} doneButtonText="Sign up" finalHashtagNames={interestNames} setFinalHashtagNames={setInterestNames} />
-
-
           </>
         )}
       </div>

@@ -67,14 +67,15 @@ export function Friends() {
   return (
     <div>
       <h1>Friends</h1>
-      <ul>
-        {friends.map((friend, index) => (
-          <li key={index}>
-            {friend.username}
-            <button onClick={() => removeFriend(friend.user_id)}>Remove</button>
-          </li>
-        ))}
-      </ul>
+        <ul style={{ listStyleType: 'none', padding: 0 }}>
+          {friends.map((friend, index) => (
+            <li key={index} style={{ marginBottom: '10px', borderBottom: '1px solid #ccc', paddingBottom: '5px' }}>
+              <span style={{ marginRight: '10px' }}>{friend.username}</span>
+              <span style={{ color: friend.logged_in === 0 ? 'red' : 'green' }}>{friend.logged_in === 0 ? "Inactive" : "Active"}</span>
+              <button style={{ marginLeft: '10px', backgroundColor: '#007bff', color: '#fff', border: 'none', padding: '5px 10px', borderRadius: '5px', cursor: 'pointer' }} onClick={() => removeFriend(friend.user_id)}>Remove</button>
+            </li>
+          ))}
+        </ul>
 
       <hr></hr>
 

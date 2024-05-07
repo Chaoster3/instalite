@@ -96,7 +96,7 @@ exports.getAllFriends = async (req, res) => {
 
   try {
     const friends = await db.send_sql(
-      `SELECT DISTINCT users.username AS username, users.user_id AS user_id
+      `SELECT DISTINCT users.username AS username, users.user_id AS user_id, users.logged_in AS logged_in
        FROM friends
         JOIN users ON friends.followed = users.user_id
        WHERE friends.follower = ${user_id}`
@@ -138,7 +138,6 @@ exports.getPostsMainPage = async (req, res) => {
     );
 
     const posts = yourPosts.concat(friendsPosts);
-    console.log("posts length", posts.length);
 
     // Convert each post's hashtag_ids into hashtag_names
     for (let i = 0; i < posts.length; i++) {

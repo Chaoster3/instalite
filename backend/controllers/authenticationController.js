@@ -128,12 +128,15 @@ exports.login = async function (req, res) {
         .status(HTTP_STATUS.UNAUTHORIZED)
         .json({ error: 'Username and/or password are invalid.' });
     } else {
+      // User succcessfully logs in
       req.session.user_id = correct[0]['user_id'];
-      //console.log("logging in")
-      //console.log(req.session)
-      //console.log(req.session.user_id)
       req.session.username = username;
       await req.session.save();
+
+      // Update the logged in field in the user db
+      await db.send_sql(
+        `UPDATE users SET logged_in = 1 WHERE user_id = ${req.session.user_id}`
+      );
       return res.status(HTTP_STATUS.SUCCESS).json({ username: username });
     }
   } catch (err) {
@@ -145,13 +148,26 @@ exports.login = async function (req, res) {
 };
 
 exports.logout = async function (req, res) {
-  // TODO: fill in log out logic to disable session info
+  try {
+    // Update the logged in field in the user db
+    await db.send_sql(
+      `UPDATE users SET logged_in = 0 WHERE user_id = ${req.session.user_id}`
+    );
+  } catch (err) {
+    console.log(err);
+    return res
+      .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+      .json({ error: 'Error querying database' });
+  }
+
   req.session.user_id = null;
   req.session.username = null;
   await req.session.save();
+
   return res
     .status(HTTP_STATUS.SUCCESS)
     .json({ message: 'You were successfully logged out.' });
+
 };
 
 exports.changePassword = async (req, res) => {
@@ -237,7 +253,6 @@ exports.resetPassword = async (req, res) => {
     .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
     .json({ error: "Haven't implemented." });
 }
-
 
 // Checks if the user is signed in
 exports.checkIfLoggedIn = async (req, res) => {

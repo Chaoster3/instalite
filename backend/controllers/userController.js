@@ -96,7 +96,7 @@ exports.getAllFriends = async (req, res) => {
 
   try {
     const friends = await db.send_sql(
-      `SELECT users.username AS username, users.user_id AS user_id
+      `SELECT DISTINCT users.username AS username, users.user_id AS user_id
        FROM friends
         JOIN users ON friends.followed = users.user_id
        WHERE friends.follower = ${user_id}`
@@ -480,7 +480,7 @@ exports.getFriendRecommendation = async (req, res) => {
     );
 
     const friendOfFriends = await db.send_sql(`
-      SELECT f2.followed AS followed
+      SELECT DISTINCT f2.followed AS followed
       FROM friends f1
         JOIN friends f2 ON f1.followed = f2.follower
       WHERE f1.follower = ${user_id} AND f2.followed <> ${user_id}

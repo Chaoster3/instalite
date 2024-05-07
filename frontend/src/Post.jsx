@@ -103,7 +103,6 @@ const Post = ({ post }) => {
         { withCredentials: true }
       );
       if (response.status === 200) {
-        // const commentContent = response.data.map(comment => comment.content);
         setExistingComments(response.data);
       } else {
         console.error("Error fetching comments");

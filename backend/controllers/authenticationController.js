@@ -14,6 +14,7 @@ exports.register = async function (req, res) {
     affiliation,
     birthday,
     linked_nconst,
+    interestNames,
   } = req.body;
   console.log(req);
 
@@ -28,16 +29,6 @@ exports.register = async function (req, res) {
     birthday == null
   ) {
     console.log('one or more fields were empty');
-    // print everything
-    console.log(username);
-    console.log(password);
-    console.log(passwordConfirm)
-    console.log(firstName)
-    console.log(lastName)
-    console.log(email)
-    console.log(affiliation)
-    console.log(birthday)
-    console.log(linked_nconst)
     return res.status(400).json({
       error:
         'One or more of the fields you entered was empty, please try again.',
@@ -63,8 +54,6 @@ exports.register = async function (req, res) {
       });
     }
 
-    console.log('hashing password');
-
     const hashed = await new Promise((resolve, reject) => {
       bcrypt.hash(password, 10, (err, hash) => {
         if (err) {
@@ -75,8 +64,22 @@ exports.register = async function (req, res) {
       });
     });
 
+    // Convert interest names into interest ids
+    const interestIds = [];
+    for (let i = 0; i < interestNames.length; i++) {
+      const interest = await db.send_sql(
+        `SELECT * FROM hashtags WHERE name = '${interestNames[i]}'`
+      );
+      if (interest.length === 0) {
+        return res
+          .status(HTTP_STATUS.BAD_REQUEST)
+          .json({ error: `Interest ${interestNames[i]} does not exist.` });
+      }
+      interestIds.push(interest[0].hashtag_id);
+    }
+
     await db.send_sql(
-      `INSERT INTO users (username, hashed_password, first_name, last_name, email, affiliation, birthday, linked_nconst) VALUES ('${username}', '${hashed}', '${firstName}', '${lastName}', '${email}', '${affiliation}', '${birthday}', '${linked_nconst}')`
+      `INSERT INTO users (username, hashed_password, first_name, last_name, email, affiliation, birthday, linked_nconst, interests) VALUES ('${username}', '${hashed}', '${firstName}', '${lastName}', '${email}', '${affiliation}', '${birthday}', '${linked_nconst}', '${interestIds}')`
     );
 
     return res.status(HTTP_STATUS.CREATED).json({ username: username });

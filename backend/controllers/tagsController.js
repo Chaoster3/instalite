@@ -96,13 +96,7 @@ exports.updateUserHashTags = async (req, res) => {
 
 exports.searchHashTags = async (req, res) => {
   const { q } = req.params;
-  const { user_id } = req.session;
-
-  // Check if user is logged in
-  if (!user_id) {
-    return res.status(HTTP_STATUS.UNAUTHORIZED).json({ error: 'User not logged in.' });
-  }
-
+  
   try {
     const tags = await db.send_sql(
       `SELECT name FROM hashtags WHERE name LIKE '%${q}%'`

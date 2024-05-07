@@ -24,9 +24,28 @@ function Signup() {
     linked_nconst: '',
   });
   const [interestNames, setInterestNames] = useState([])
+  const [topTenTagsNames, setTopTenTagsNames] = useState([]);
+
 
   const navigate = useNavigate();
 
+  useEffect(() => {
+    const getTagsSuggestions = async () => {
+      try {
+        const response = await axios.get(`${BACKEND_URL}/tags/findTopTenTags`);
+
+        if (response.status === 200) {
+          setTopTenTagsNames(response.data);
+        } else {
+        }
+      } catch (error) {
+        console.error('Error getting tags suggestions:', error);
+      }
+    };
+
+    getTagsSuggestions();
+
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -108,6 +127,15 @@ function Signup() {
     }
   };
 
+
+  const addSearchedTagToFinal = (tag) => {
+    const isTagInFinalTags = interestNames.some(finalTag => finalTag.name === tag.name);
+
+    if (!isTagInFinalTags) {
+      setInterestNames([...interestNames, tag.name]);
+    }
+  };
+
   const inputFields = [
     { name: 'firstName', placeholder: 'First Name', type: 'text' },
     { name: 'lastName', placeholder: 'Last Name', type: 'text' },
@@ -173,6 +201,14 @@ function Signup() {
               </label>
             </div>
             <div key={9} className="relative h-11 w-full min-w-[200px]">
+            </div>
+            <h2>Tag Suggestions</h2>
+            <div>
+              {topTenTagsNames.map((tag) => (
+                <button key={tag.id} onClick={() => addSearchedTagToFinal(tag)}>
+                  {tag.name}
+                </button>
+              ))}
             </div>
             <HashTagsSelector handleSubmit={handleSignup2} doneButtonText="Sign up" finalHashtagNames={interestNames} setFinalHashtagNames={setInterestNames} />
 

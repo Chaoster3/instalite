@@ -11,8 +11,25 @@ const Chat = () => {
     const [chats, setChats] = useState([]);
 
     useEffect(() => {
-        socket.on('historicalMessages', (data) => {
-            setChats(data);
+
+        socket.emit('loadChats', { userId: req.session.user_id });
+
+        socket.on('historicalMessages', (newChats) => {
+            setChats(currentChats => {
+                const chatMap = new Map(currentChats.map(chat => [chat.chatID, chat]));
+
+                // Merge new chats with existing chats
+                newChats.forEach(chat => {
+                    if (chatMap.has(chat.chatID)) {
+                        // If the chat already exists, merge messages
+                        const existingChat = chatMap.get(chat.chatID);
+                        chat.messages = [chat.messages];
+                    }
+                    chatMap.set(chat.chatID, chat);
+                });
+
+                return Array.from(chatMap.values());
+            });
         });
 
         socket.on('newMessage', (newMessage) => {
@@ -26,9 +43,26 @@ const Chat = () => {
             });
         });
 
+        socket.on('chatCreated', (chatInfo) => {
+            setChats(currentChats => [
+                ...currentChats,
+                {
+                    name: chatInfo.chatName,
+                    chatID: chatInfo.sessionId,
+                    users: chatInfo.users, 
+                    messages: [] // Start with an empty messages array
+                }
+            ]);
+            setMessages({ messages: [], chatID: chatInfo.sessionId });
+        });
+
+
         return () => {
             socket.off('historicalMessages');
             socket.off('newMessage');
+            socket.off('joinRoom');
+            socket.off('chatCreated');
+            socket.off('loadChats');
         };
     }, []);
 

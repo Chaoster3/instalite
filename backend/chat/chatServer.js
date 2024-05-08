@@ -7,12 +7,35 @@ const io = require('socket.io')(server, {
 
 const chatController = require('./chatController');
 
+const userSockets = new Map();  // Map to hold userId to socketId
+
 io.on('connection', socket => {
     console.log('A user connected:', socket.id);
+    userSockets.set(userId, socket.id);
 
-    socket.on('registerUser', async ({ userId }) => {
-        await chatController.addUser(userId, socket.id);
-        console.log(`User ${userId} registered with socket ${socket.id}`);
+
+    socket.on('createChat', async ({ userIds, chatName }) => {
+        const sessionId = await chatController.createChatSession(chatName);
+
+        // Join each user to the chat session and notify them
+        userIds.forEach(async (userId) => {
+            const userSocketId = userSockets.get(userId);
+            if (userSocketId) {
+                io.to(userSocketId).emit('joinRoom', { sessionId, userId });
+                io.sockets.sockets.get(userSocketId).join(sessionId);
+                console.log(`User ${userId} added to room ${sessionId} with socket ${userSocketId}`);
+            }
+        });
+        const users = await chatController.getSessionUsers(sessionId);
+
+
+        // Emit back to the creator that the chat was successfully created
+        socket.emit('chatCreated', { sessionId, chatName, users: users });
+    });
+
+    socket.on('loadChats', async ({ userId }) => {
+        const chats = await chatController.loadUserChats(userId);
+        socket.emit('historicalMessages', chats);
     });
 
     socket.on('joinRoom', async ({ sessionId, userId }) => {
@@ -42,7 +65,14 @@ io.on('connection', socket => {
 
     socket.on('disconnecting', async () => {
         await chatController.handleDisconnect(socket.id);
+        userSockets.forEach((value, key) => {
+            if (value === socket.id) {
+                userSockets.delete(key);
+                console.log(`User ${key} disconnected and removed from the map`);
+            }
+        });
     });
+
 
     socket.on('leaveChat', async ({ sessionId, userId }) => {
         await chatController.leaveRoom(userId, sessionId);

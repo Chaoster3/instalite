@@ -7,21 +7,21 @@ const tagsRouter = require('./routes/tagsRoutes');
 const cors = require('cors');
 const chroma = require('./basic-face-match-main/app.js');
 const path = require('path');
-const { ConnectContactLens } = require('aws-sdk');
 const app = express();
 const session = require('express-session');
 const signature = require('cookie-signature')
+const kafka = require('./kafka.js')
 
 let collection;
 
-// Comment this out while testing
 chroma.startChroma().then(col => collection = col);
+
+// kafka.retrivePosts();
 
 app.use((req, res, next) => {
   req.collection = collection;
   next();
 });
-// Up to here
 
 const sessionMiddleWear = session({
   secret: 'nets2120_insecure',

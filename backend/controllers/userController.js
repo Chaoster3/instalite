@@ -5,12 +5,7 @@ const aws = require('aws-sdk');
 const process = require('process');
 const path = require('path');
 const fs = require('fs');
-
-// aws.config.update({
-//     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-//     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-//     region: process.env.AWS_SESSION_TOKEN
-// })
+const HTTP_STATUS = require('../utils/httpStatus');
 
 const db = dbsingleton;
 
@@ -26,7 +21,6 @@ exports.register = async function (req, res) {
         birthday,
         image_link,
         linked_nconst,
-        linked_name
     } = req.body;
     if (
         username == null ||
@@ -37,8 +31,7 @@ exports.register = async function (req, res) {
         affiliation == null ||
         birthday == null ||
         image_link == null ||
-        linked_nconst == null ||
-        linked_name == null
+        linked_nconst == null
     ) {
         return res.status(400).json({
             error:
@@ -263,6 +256,9 @@ exports.getClosest = async (req, res) => {
     }
 
     const file = req.file;
+    if (file == null) {
+        return res.status(400).json({ error: 'No image uploaded' });
+    }
     fs.readFile(file.path, (err, data) => {
         if (err) {
             console.error('Error reading file:', err);
@@ -272,7 +268,7 @@ exports.getClosest = async (req, res) => {
             console.log(count);
             const key = username + count[0]['count'];
             const params = {
-                Bucket: process.env.S3_BUCKET,
+                Bucket: process.env.S3_BUCKET_2,
                 Key: key,
                 Body: data
             };
@@ -345,14 +341,14 @@ exports.getPostsMainPage = async (req, res) => {
 
   try {
     const yourPosts = await db.send_sql(
-      `SELECT users.username AS username, posts.content AS content, posts.image AS image, posts.post_id AS post_id, posts.hashtag_ids AS hashtag_ids
+      `SELECT users.username AS username, posts.content AS content, posts.post_id AS post_id, posts.hashtag_ids AS hashtag_ids
       FROM posts
         JOIN users ON posts.author_id = users.user_id
       WHERE posts.author_id = '${user_id}'`
     );
 
     const friendsPosts = await db.send_sql(
-      `SELECT users.username AS username, posts.content AS content, posts.image AS image, posts.post_id AS post_id, posts.hashtag_ids AS hashtag_ids
+      `SELECT users.username AS username, posts.content AS content, posts.post_id AS post_id, posts.hashtag_ids AS hashtag_ids
       FROM posts
         JOIN users ON posts.author_id = users.user_id
       WHERE author_id IN (SELECT followed from friends WHERE follower = '${user_id}')`

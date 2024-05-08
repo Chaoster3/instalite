@@ -65,7 +65,7 @@ async function create_tables(db) {
       username VARCHAR(255) NOT NULL UNIQUE, \
       hashed_password VARCHAR(255) NOT NULL, \
       linked_nconst VARCHAR(10), \
-      image_id VARCHAR(255), \
+      image_link VARCHAR(255), \
       first_name VARCHAR(255), \
       last_name VARCHAR(255), \
       email VARCHAR(255), \
@@ -117,9 +117,9 @@ async function create_tables(db) {
       post_id INT NOT NULL AUTO_INCREMENT, \
       author_id INT, \
       content VARCHAR(255), \
-      image VARCHAR(255), \
       hashtag_ids VARCHAR(255), \
       user_ids_who_liked VARCHAR(255), \
+      foreign_username VARCHAR(255), \
       PRIMARY KEY(post_id), \
       FOREIGN KEY(author_id) REFERENCES users(user_id) \
     );'
@@ -159,7 +159,7 @@ async function create_tables(db) {
       FOREIGN KEY (user_id) REFERENCES users(user_id) \
     );'
   );
-
+  
   return await Promise.all([q0, q1, q2, q3, q4, q5, q6]);
 }
 

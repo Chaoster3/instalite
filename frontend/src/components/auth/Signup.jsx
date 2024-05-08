@@ -108,7 +108,6 @@ function Signup() {
         body.append(key, formData[key]);
       }
       const response = await axios.post(`${BACKEND_URL}/users/getClosest`, body)
-      console.log("here")
       if (response.status === 200) {
         const resMatches = response.data.matches
         const modMatches = resMatches.map(match => ({
@@ -164,19 +163,6 @@ function Signup() {
     } catch (error) {
       console.log('Sign Up failed');
       console.log(error);
-      setFormData({
-        username: '',
-        password: '',
-        passwordConfirm: '',
-        firstName: '',
-        lastName: '',
-        email: '',
-        affiliation: '',
-        birthday: '',
-        linked_nconst: '',
-        linked_name: ''
-      });
-      setInterestNames([])
     }
   };
 
@@ -282,6 +268,19 @@ function Signup() {
   } else {
     return (
       <div className="h-screen w-screen flex justify-center flex-col text-gray-700 w-96 rounded-xl bg-clip-border mx-auto">
+        <>
+          <div key={9} className="relative h-11 w-full min-w-[200px]">
+          </div>
+          <h2>Tag Suggestions</h2>
+          <div>
+            {topTenTagsNames.map((tag) => (
+              <button key={tag.id} onClick={() => addSearchedTagToFinal(tag)}>
+                {tag.name}
+              </button>
+            ))}
+          </div>
+          <HashTagsSelector handleSubmit={handleSignup2} doneButtonText="Sign up" finalHashtagNames={interestNames} setFinalHashtagNames={setInterestNames} />
+        </>
         <div className="text-center text-2xl font-bold mb-4">
           Choose your Actor:
         </div>

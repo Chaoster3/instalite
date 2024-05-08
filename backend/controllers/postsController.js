@@ -1,7 +1,15 @@
 const dbsingleton = require('../access/db_access');
 const HTTP_STATUS = require('../utils/httpStatus');
 const kafka = require('../kafka');
+const process = require('process');
+const aws = require('aws-sdk');
+
+
 const db = dbsingleton;
+
+const s3 = new aws.S3({
+  region: process.env.S3_REGION
+});
 
 exports.createPost = async (req, res) => {
   const { content, hashtag_names } = req.body;
@@ -14,7 +22,7 @@ exports.createPost = async (req, res) => {
   }
 
   // Cannot all be null
-  if (image == null && content == null && hashtags == null) {
+  if (content == null && hashtags == null) {
     return res
       .status(HTTP_STATUS.BAD_REQUEST)
       .json({ error: 'All fields cannot be empty.' });
@@ -35,8 +43,36 @@ exports.createPost = async (req, res) => {
       hashtag_ids.push(hashtag[0].hashtag_id);
     }
 
+    const file = req.file;
+    if (file != null) {
+      const count = await db.send_sql(
+        `SELECT MAX(post_id) as count FROM posts`
+      );
+      fs.readFile(file.path, (err, data) => {
+        if (err) {
+          console.error('Error reading image file:', err);
+          return res.status(500).send('Error uploading image');
+        } else {
+          const key = user_id + count[0]['count'];
+          const params = {
+            Bucket: process.env.S3_BUCKET_2,
+            Key: key,
+            Body: data
+          };
+          const responseData = {};
+          responseData.matches = [];
+          s3.upload(params, async (err, s3Data) => {
+            if (err) {
+              console.error('Error uploading to S3:', err);
+              return res.status(500).send('Error uploading file');
+            } else {
+              content = content + "\n\n" + "<img src=" + s3Data.location + " alt=image>";
+            }});
+          }
+        })
+    }
     await db.send_sql(
-      `INSERT INTO posts (author_id, image, content, hashtag_ids) VALUES ('${req.session.user_id}', '${image}', '${content}', '${hashtag_ids}')`
+      `INSERT INTO posts (author_id, content, hashtag_ids) VALUES ('${req.session.user_id}', '${content}', '${hashtag_ids}')`
     );
     const latest = await db.send_sql(
       `SELECT MAX(post_id) as latest FROM posts`

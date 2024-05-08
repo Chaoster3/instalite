@@ -16,7 +16,7 @@ let collection;
 
 chroma.startChroma().then(col => collection = col);
 
-// kafka.retrivePosts();
+kafka.getMessages();
 
 app.use((req, res, next) => {
   req.collection = collection;

@@ -31,6 +31,7 @@ const Chat = () => {
     const [chatName, setChatName] = useState("");
     const [editing, setEditing] = useState(false);
     const [showCreateNewChat, setShowCreateNewChat] = useState(false);
+    const [user, setUser] = useState("");
     const user_id = 1;
 
     const handleCreateNewChat = () => {
@@ -58,6 +59,26 @@ const Chat = () => {
         setEditing(true);
         setChatName(chats.find(chat => chat.chatID === messages.chatID)?.name || "New Chat");
     };
+
+    useEffect(() => {
+        const fetchUser = async () => {
+          try {
+            const response = await axios.get(`${BACKEND_URL}/users/checkIfLoggedIn`);
+            if (response.status === 200) {
+              setUser(response.data.data);
+            } else {
+              setUser("");
+              navigate('/login');
+            }
+          } catch (error) {
+            console.error("Error fetching user:", error);
+            setUser("");
+            navigate('/login');
+          }
+        }
+    
+        fetchUser();
+      }, []);
 
     useEffect(() => {
         socket.on('receiveInvite', ({ sessionId, inviterId }) => {

@@ -3,14 +3,24 @@ import axios from "axios";
 import { BACKEND_URL } from "./utils/constants";
 import { useNavigate } from "react-router-dom";
 
+const axiosInstance = axios.create({
+  withCredentials: true
+})
+
 const CreatePosts = () => {
   const navigate = useNavigate();
   const [form, setForm] = useState({
     // image: "",
     content: "",
-    // hashtags: "",
+    hashtag_names: [],
   });
   const [formStatus, setFormStatus] = useState("");
+
+  const [searchInput, setSearchInput] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [newTagInput, setNewTagInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
 
   const handleChange = (e) => {
@@ -24,9 +34,9 @@ const CreatePosts = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post(
+      const response = await axiosInstance.post(
         `${BACKEND_URL}/posts/createPost`,
-        form,
+        form
       );
       if (response.status === 201) {
         setFormStatus("Post created successfully");
@@ -34,6 +44,7 @@ const CreatePosts = () => {
         setFormStatus("Post creation failed");
         setForm({
           content: "",
+          hashtags: [],
         });
       }
       navigate('/');
@@ -43,9 +54,91 @@ const CreatePosts = () => {
       console.error("Error creating post:", error);
       setForm({
         content: "",
+        hashtags: [],
       });
     }
   };
+
+  // Function to handle search input change
+  const handleSearchInputChange = (e) => {
+    setSearchInput(e.target.value);
+  };
+
+  // Function to handle tag creation input change
+  const handleNewTagInputChange = (e) => {
+    setNewTagInput(e.target.value);
+  };
+
+  const searchTags = async () => {
+    try {
+      setIsLoading(true);
+      setErrorMessage('');
+
+      const response = await axios.get(`${BACKEND_URL}/tags/searchHashTags/${searchInput}`);
+
+      if (response.status === 200) {
+        setSearchResults(response.data);
+      } else {
+        setErrorMessage('Error searching tags. Please try again later.');
+      }
+    } catch (error) {
+      console.error('Error searching tags:', error);
+      setErrorMessage('Error searching tags. Please try again later.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Function to create a new tag
+  const createTag = async () => {
+    try {
+      setIsLoading(true);
+      setErrorMessage('');
+
+      const response = await axiosInstance.post(`${BACKEND_URL}/tags/createTag`, { name: newTagInput });
+
+      if (response.status === 201) {
+        setNewTagInput('');
+        setForm(prevForm => ({
+          ...prevForm,
+          hashtag_names: [...prevForm.hashtag_names, response.data.name]
+        }));
+        // setFinalTags([...finalTags, response.data]);
+      } else if (response.status === 400) {
+        setErrorMessage('Tag already exists.');
+      } else {
+        setErrorMessage('Error creating tag. Please try again later.');
+      }
+    } catch (error) {
+      console.error('Error creating tag:', error);
+      setErrorMessage('Error creating tag. Please try again later.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+
+  const addSearchedTagToFinal = (tag) => {
+    // Check if the tag is already in the finalTags array
+    // const isTagInFinalTags = finalTags.some(finalTag => finalTag.name === tag.name);
+    const isTagInForm = form.hashtag_names.includes(tag.name);
+    if (!isTagInForm) {
+      setForm(prevForm => ({
+        ...prevForm,
+        hashtag_names: [...prevForm.hashtag_names, tag.name]
+      }));
+    }
+  };
+
+  // Function to remove a final tag from the finalTags array
+  const removeFinalTag = (tagName) => {
+    // setFinalTags(finalTags.filter(tag => tag.name !== tagName));
+    setForm(prevForm => ({
+      ...prevForm,
+      hashtag_names: prevForm.hashtag_names.filter(tag => tag !== tagName)
+    }));
+  };
+
 
   const inputFields = [
     { name: "content", placeholder: "Content", type: "text" },
@@ -56,7 +149,7 @@ const CreatePosts = () => {
       <div className="text-center text-2xl font-bold mb-4">
         Create a Post
       </div>
-      <form className="flex flex-col gap-4 p-6" onSubmit={handleSubmit}>
+      <div className="flex flex-col gap-4 p-6">
         {inputFields.map((field, index) => (
           <div key={index} className="relative h-11 w-full min-w-[200px]">
             <input
@@ -69,13 +162,62 @@ const CreatePosts = () => {
             />
           </div>
         ))}
+        <br></br>
+        <hr />
+        <br></br>
+        <h2>Choose New Tags</h2>
+        <div>
+          <input
+            type="text"
+            placeholder="Search for tags"
+            value={searchInput}
+            onChange={handleSearchInputChange}
+          />
+          <button onClick={searchTags}>Search</button>
+        </div>
+
+        {isLoading && <div>Loading...</div>}
+        {errorMessage && <div>{errorMessage}</div>}
+
+        <div>
+          {searchResults && searchResults.map((tag) => (
+            <button key={tag.id} onClick={() => addSearchedTagToFinal(tag)}>
+              {tag.name}
+            </button>
+          ))}
+        </div>
+
+        <div>
+          <input
+            type="text"
+            placeholder="Enter new tag"
+            value={newTagInput}
+            onChange={handleNewTagInputChange}
+          />
+          <button onClick={createTag}>Create</button>
+        </div>
+
+        {/* Render finalTags */}
+        <br></br>
+        <hr />
+        <br></br>
+        <div>
+          <h2>Final Tags</h2>
+          {form.hashtag_names.map((tagName) => (
+            <button
+              key={tagName}
+              onClick={() => removeFinalTag(tagName)}
+            >
+              {tagName}
+            </button>
+          ))}
+        </div>
         {formStatus && <p className={formStatus.includes('successful') ? 'text-green-500' : 'text-red-500'}>{formStatus}</p>}
-        <button className="bg-blue-500 text-white py-2 rounded-md">
+        <button className="bg-blue-500 text-white py-2 rounded-md" onClick={handleSubmit}>
           Submit
         </button>
-      </form>
+      </div>
     </div>
   );
 }
-
 export default CreatePosts

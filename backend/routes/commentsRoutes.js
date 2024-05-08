@@ -4,7 +4,8 @@ const router = express.Router();
 
 router.route('/').get(commentsController.getAllComments);
 router.route('/createComment/:postId').post(commentsController.createComment);
-router.route('/getComment/:commentId').get(commentsController.getComment);
+router.route('/getComment/:postId').get(commentsController.getCommentContent);
+
 
 
 module.exports = router;

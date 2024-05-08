@@ -54,10 +54,10 @@ async function getEmbeddings(imageFile) {
 async function initializeFaceModels() {
   console.log("Initializing FaceAPI...");
   await tf.ready();
-  await faceapi.nets.ssdMobilenetv1.loadFromDisk('model');
+  await faceapi.nets.ssdMobilenetv1.loadFromDisk('basic-face-match-main/model');
   optionsSSDMobileNet = new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5, maxResults: 1 });
-  await faceapi.nets.faceLandmark68Net.loadFromDisk('model');
-  await faceapi.nets.faceRecognitionNet.loadFromDisk('model');
+  await faceapi.nets.faceLandmark68Net.loadFromDisk('basic-face-match-main/model');
+  await faceapi.nets.faceRecognitionNet.loadFromDisk('basic-face-match-main/model');
 
   return;
 }
@@ -86,9 +86,7 @@ async function indexAllFaces(pathName, image, collection) {
     };
     var res = await collection.add(data);
 
-    if (res === true) {
-      console.info("Added image embedding for " + image + " to collection.");
-    } else {
+    if (res === false) {
       console.error(res.error);
       success = false;
     }
@@ -147,7 +145,7 @@ async function startChroma() {
         metadata: { "hnsw:space": "l2" },
       });
 
-      console.info("Looking for files");
+      console.info("Preparing ChromaDB");
       const promises = [];
       // Loop through all the files in the images directory
       fs.readdir("images", function (err, files) {
@@ -157,22 +155,11 @@ async function startChroma() {
         }
 
         files.forEach(function (file, index) {
-          console.info("Adding task for " + file + " to index.");
           promises.push(indexAllFaces(path.join("images", file), file, collection));
         });
-        console.info("Done adding promises, waiting for completion.");
         Promise.all(promises)
           .then(async (results) => {
-            console.info("All images indexed.");
-
-            const search = 'query.jpg';
-
-            console.log('\nTop-k indexed matches to ' + search + ':');
-            for (var item of await findTopKMatches(collection, search, 5)) {
-              for (var i = 0; i < item.ids[0].length; i++) {
-                console.log(item.ids[0][i] + " (Euclidean distance = " + Math.sqrt(item.distances[0][i]) + ") in " + item.documents[0][i]);
-              }
-            }
+            console.log("ChromaDB ready");
           })
           .catch((err) => {
             console.error("Error indexing images:", err);

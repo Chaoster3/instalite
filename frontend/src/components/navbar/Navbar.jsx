@@ -21,6 +21,7 @@ import { Friends } from "../../Friends";
 import Home from "../../Home";
 import CreatePosts from "../../CreatePosts";
 import { Profile } from "../../Profile";
+import ChangeTag from "../../ChangeTag";
 import Logout from "../auth/Logout";
 
 
@@ -38,6 +39,7 @@ export function NavbarWithSearch() {
     { title: "Add/Remove Friends", component: <Friends />, icon: UserPlusIcon, path: "/friends" },
     { title: "Chat", component: <Chat />, icon: ChatBubbleLeftRightIcon, path: "/chat" },
     { title: "Create Posts", component: <CreatePosts />, icon: DocumentIcon, path: "/create_posts" },
+    { title: "Change Tags", component: <ChangeTag />, icon: HeartIcon, path: "/change_tags" },
     { title: "Logout", component: <Logout />, icon: HeartIcon, path: "/logout"}
   ];
 

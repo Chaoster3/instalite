@@ -1,15 +1,20 @@
 import axios from 'axios';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import { BACKEND_URL } from "../../utils/constants";
+// import { l } from 'vite/dist/node/types.d-aGj9QkWt';
+import alertGradient from '@material-tailwind/react/theme/components/alert/alertGradient';
+import HashTagsSelector from '../../HashTagsSelector';
+
+const axiosInstance = axios.create({
+  withCredentials: true
+})
 
 function Signup() {
   const [isFirstPage, setIsFirstPage] = useState(true);
   const [profilePhoto, setProfilePhoto] = useState(null);
-
-  const navigate = useNavigate();
-
+  const [matches, setMatches] = useState(null);
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -20,7 +25,32 @@ function Signup() {
     affiliation: '',
     birthday: '',
     linked_nconst: '',
+    profile_pic: null,
+    image_link: ''
   });
+  const [interestNames, setInterestNames] = useState([])
+  const [topTenTagsNames, setTopTenTagsNames] = useState([]);
+
+
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const getTagsSuggestions = async () => {
+      try {
+        const response = await axios.get(`${BACKEND_URL}/tags/findTopTenTags`);
+
+        if (response.status === 200) {
+          setTopTenTagsNames(response.data);
+        } else {
+        }
+      } catch (error) {
+        console.error('Error getting tags suggestions:', error);
+      }
+    };
+
+    getTagsSuggestions();
+
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -30,8 +60,24 @@ function Signup() {
     }));
   };
 
-  const handleSignup1 = (e) => {
+  const handleChangeFile = (e) => {
+    setFormData((prevFormData) => ({
+      ...prevFormData,
+      ['profile_pic']: e.target.files[0],
+    }));
+  };
+
+  const handlePress = (name, image) => {
+    setFormData((prevFormData) => ({
+      ...prevFormData,
+      ['linked_nconst']: image.substring(-4),
+      ['linked_name']: name
+    }));
+  }
+
+  const handleSignup1 = async (e) => {
     e.preventDefault();
+    console.log(formData);
     if (!formData.email.includes('@') && !formData.email.includes('.')) {
       alert('Invalid email');
       return;
@@ -56,8 +102,31 @@ function Signup() {
       alert('Passwords do not match');
       return;
     }
-    console.log('Sign Up clicked');
-    setIsFirstPage(false);
+    try {
+      const body = new FormData();
+      for (const key in formData) {
+        body.append(key, formData[key]);
+      }
+      const response = await axios.post(`${BACKEND_URL}/users/getClosest`, body)
+      if (response.status === 200) {
+        const resMatches = response.data.matches
+        const modMatches = resMatches.map(match => ({
+          ...match,
+          image: BACKEND_URL + '/images/' + match.image
+        }))
+        setMatches(modMatches);
+        setFormData((prevFormData) => ({
+          ...prevFormData,
+          ['image_link']: response.data.image_link,
+        }));
+        setIsFirstPage(false);
+      } else if (response.status == 409) {
+        alert('An account with this username already exists');
+      }
+    } catch (error) {
+      console.log('Sign Up failed');
+      console.log(error);
+    }
   };
 
   const handleSignup2 = async (e) => {
@@ -75,26 +144,34 @@ function Signup() {
       //   },
       // });
 
-      const response = await axios.post(`${BACKEND_URL}/users/register`, formData);
+      const response = await axiosInstance.post(`${BACKEND_URL}/users/register`, {
+        ...formData,
+        interestNames: interestNames
+      });
 
       if (response.status === 201) {
         console.log('Sign Up successful');
+
+        // Log the user in
+        await axiosInstance.post(`${BACKEND_URL}/users/login`, {
+          username: formData.username,
+          password: formData.password,
+        });
+
         navigate('/');
       }
     } catch (error) {
       console.log('Sign Up failed');
       console.log(error);
-      setFormData({
-        username: '',
-        password: '',
-        passwordConfirm: '',
-        firstName: '',
-        lastName: '',
-        email: '',
-        affiliation: '',
-        birthday: '',
-        linked_nconst: '',
-      });
+    }
+  };
+
+
+  const addSearchedTagToFinal = (tag) => {
+    const isTagInFinalTags = interestNames.some(finalTag => finalTag.name === tag.name);
+
+    if (!isTagInFinalTags) {
+      setInterestNames([...interestNames, tag.name]);
     }
   };
 
@@ -111,57 +188,46 @@ function Signup() {
       placeholder: 'Confirm Password',
       type: 'password',
     },
-    {
-      name: 'linked_nconst',
-      placeholder: 'Linked Nconst',
-      type: 'text',
-    },
   ];
 
-  return (
-    <div className="h-screen w-screen flex justify-center flex-col text-gray-700 w-96 rounded-xl bg-clip-border mx-auto">
-      <div className="text-center text-2xl font-bold mb-4">
-        {isFirstPage
-          ? 'Welcome to Myelin Oligodendrocyte Glycoprotein'
-          : 'Personalize Your Profile'}
-      </div>
-      <div className="flex flex-col gap-4 p-6">
-        {isFirstPage &&
-          inputFields.map((field, index) => (
-            <div key={index} className="relative h-11 w-full min-w-[200px]">
-              <input
-                type={field.type}
-                name={field.name}
-                value={formData[field.name]}
-                onChange={handleChange}
-                placeholder=" "
-                className="w-full h-full px-3 py-3 font-sans text-sm font-normal transition-all bg-transparent border rounded-md peer border-blue-gray-200 border-t-transparent text-blue-gray-700 outline outline-0 placeholder-shown:border placeholder-shown:border-blue-gray-200 placeholder-shown:border-t-blue-gray-200 focus:border-2 focus:border-gray-900 focus:border-t-transparent focus:outline-0 disabled:border-0 disabled:bg-blue-gray-50"
-              />
-              <label className="before:content[' '] after:content[' '] pointer-events-none absolute left-0 -top-1.5 flex h-full w-full select-none !overflow-visible truncate text-[11px] font-normal leading-tight text-gray-500 transition-all before:pointer-events-none before:mt-[6.5px] before:mr-1 before:box-border before:block before:h-1.5 before:w-2.5 before:rounded-tl-md before:border-t before:border-l before:border-blue-gray-200 before:transition-all after:pointer-events-none after:mt-[6.5px] after:ml-1 after:box-border after:block after:h-1.5 after:w-2.5 after:flex-grow after:rounded-tr-md after:border-t after:border-r after:border-blue-gray-200 after:transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:leading-[4.1] peer-placeholder-shown:text-blue-gray-500 peer-placeholder-shown:before:border-transparent peer-placeholder-shown:after:border-transparent peer-focus:text-[11px] peer-focus:leading-tight peer-focus:text-gray-900 peer-focus:before:border-t-2 peer-focus:before:border-l-2 peer-focus:before:!border-gray-900 peer-focus:after:border-t-2 peer-focus:after:border-r-2 peer-focus:after:!border-gray-900 peer-disabled:text-transparent peer-disabled:before:border-transparent peer-disabled:after:border-transparent peer-disabled:peer-placeholder-shown:text-blue-gray-500">
-                {field.placeholder}
-              </label>
-            </div>
-          ))}
-        {!isFirstPage && (
-          <>
-            <div key={8} className="relative h-11 w-full min-w-[200px]">
-              <input
-                type="file"
-                accept="image/*"
-                capture="user"
-                name="Profile Picture"
-                onChange={(e) => {
-                  setProfilePhoto(e.target.files[0]);
-                }}
-                placeholder=" "
-                className="w-full h-full px-3 py-3 font-sans text-sm font-normal transition-all bg-transparent border rounded-md peer border-blue-gray-200 border-t-transparent text-blue-gray-700 outline outline-0 placeholder-shown:border placeholder-shown:border-blue-gray-200 placeholder-shown:border-t-blue-gray-200 focus:border-2 focus:border-gray-900 focus:border-t-transparent focus:outline-0 disabled:border-0 disabled:bg-blue-gray-50"
-              />
-              <label className="before:content[' '] after:content[' '] pointer-events-none absolute left-0 -top-1.5 flex h-full w-full select-none !overflow-visible truncate text-[11px] font-normal leading-tight text-gray-500 transition-all before:pointer-events-none before:mt-[6.5px] before:mr-1 before:box-border before:block before:h-1.5 before:w-2.5 before:rounded-tl-md before:border-t before:border-l before:border-blue-gray-200 before:transition-all after:pointer-events-none after:mt-[6.5px] after:ml-1 after:box-border after:block after:h-1.5 after:w-2.5 after:flex-grow after:rounded-tr-md after:border-t after:border-r after:border-blue-gray-200 after:transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:leading-[4.1] peer-placeholder-shown:text-blue-gray-500 peer-placeholder-shown:before:border-transparent peer-placeholder-shown:after:border-transparent peer-focus:text-[11px] peer-focus:leading-tight peer-focus:text-gray-900 peer-focus:before:border-t-2 peer-focus:before:border-l-2 peer-focus:before:!border-gray-900 peer-focus:after:border-t-2 peer-focus:after:border-r-2 peer-focus:after:!border-gray-900 peer-disabled:text-transparent peer-disabled:before:border-transparent peer-disabled:after:border-transparent peer-disabled:peer-placeholder-shown:text-blue-gray-500">
-                {'Profile Photo'}
-              </label>
-            </div>
-            <div key={9} className="relative h-11 w-full min-w-[200px]">
-              {/* <input
+  if (isFirstPage) {
+    return (
+      <div className="h-screen w-screen flex justify-center flex-col text-gray-700 w-96 rounded-xl bg-clip-border mx-auto">
+        <div className="text-center text-2xl font-bold mb-4">
+          Create an Account
+        </div>
+        <div className="flex flex-col gap-4 p-6">
+            {inputFields.map((field, index) => (
+              <div key={index} className="relative h-11 w-full min-w-[200px] w- self-center">
+                <input
+                  type={field.type}
+                  name={field.name}
+                  value={formData[field.name]}
+                  onChange={handleChange}
+                  placeholder=" "
+                  className="w-full h-full px-3 py-3 font-sans text-sm font-normal transition-all bg-transparent border rounded-md peer border-blue-gray-200 border-t-transparent text-blue-gray-700 outline outline-0 placeholder-shown:border placeholder-shown:border-blue-gray-200 placeholder-shown:border-t-blue-gray-200 focus:border-2 focus:border-gray-900 focus:border-t-transparent focus:outline-0 disabled:border-0 disabled:bg-blue-gray-50"
+                />
+                <label className="before:content[' '] after:content[' '] pointer-events-none absolute left-0 -top-1.5 flex h-full w-full select-none !overflow-visible truncate text-[11px] font-normal leading-tight text-gray-500 transition-all before:pointer-events-none before:mt-[6.5px] before:mr-1 before:box-border before:block before:h-1.5 before:w-2.5 before:rounded-tl-md before:border-t before:border-l before:border-blue-gray-200 before:transition-all after:pointer-events-none after:mt-[6.5px] after:ml-1 after:box-border after:block after:h-1.5 after:w-2.5 after:flex-grow after:rounded-tr-md after:border-t after:border-r after:border-blue-gray-200 after:transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:leading-[4.1] peer-placeholder-shown:text-blue-gray-500 peer-placeholder-shown:before:border-transparent peer-placeholder-shown:after:border-transparent peer-focus:text-[11px] peer-focus:leading-tight peer-focus:text-gray-900 peer-focus:before:border-t-2 peer-focus:before:border-l-2 peer-focus:before:!border-gray-900 peer-focus:after:border-t-2 peer-focus:after:border-r-2 peer-focus:after:!border-gray-900 peer-disabled:text-transparent peer-disabled:before:border-transparent peer-disabled:after:border-transparent peer-disabled:peer-placeholder-shown:text-blue-gray-500">
+                  {field.placeholder}
+                </label>
+              </div>
+            ))}
+          <div key={8} className="relative h-11 w-full min-w-[200px]">
+            <input
+              type="file"
+              accept="image/*"
+              capture="user"
+              name="Profile Picture"
+              onChange={handleChangeFile}
+              placeholder=" "
+              className="w-full h-full px-3 py-3 font-sans text-sm font-normal transition-all bg-transparent border rounded-md peer border-blue-gray-200 border-t-transparent text-blue-gray-700 outline outline-0 placeholder-shown:border placeholder-shown:border-blue-gray-200 placeholder-shown:border-t-blue-gray-200 focus:border-2 focus:border-gray-900 focus:border-t-transparent focus:outline-0 disabled:border-0 disabled:bg-blue-gray-50"
+            />
+            <label className="before:content[' '] after:content[' '] pointer-events-none absolute left-0 -top-1.5 flex h-full w-full select-none !overflow-visible truncate text-[11px] font-normal leading-tight text-gray-500 transition-all before:pointer-events-none before:mt-[6.5px] before:mr-1 before:box-border before:block before:h-1.5 before:w-2.5 before:rounded-tl-md before:border-t before:border-l before:border-blue-gray-200 before:transition-all after:pointer-events-none after:mt-[6.5px] after:ml-1 after:box-border after:block after:h-1.5 after:w-2.5 after:flex-grow after:rounded-tr-md after:border-t after:border-r after:border-blue-gray-200 after:transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:leading-[4.1] peer-placeholder-shown:text-blue-gray-500 peer-placeholder-shown:before:border-transparent peer-placeholder-shown:after:border-transparent peer-focus:text-[11px] peer-focus:leading-tight peer-focus:text-gray-900 peer-focus:before:border-t-2 peer-focus:before:border-l-2 peer-focus:before:!border-gray-900 peer-focus:after:border-t-2 peer-focus:after:border-r-2 peer-focus:after:!border-gray-900 peer-disabled:text-transparent peer-disabled:before:border-transparent peer-disabled:after:border-transparent peer-disabled:peer-placeholder-shown:text-blue-gray-500">
+              {'Profile Photo'}
+            </label>
+          </div>
+          <div key={9} className="relative h-11 w-full min-w-[200px]">
+            {/* <input
                 type="text"
                 name="Hashtags"
                 value={formData["hashtags"]}
@@ -174,33 +240,67 @@ function Signup() {
                 placeholder=" "
                 className="w-full h-full px-3 py-3 font-sans text-sm font-normal transition-all bg-transparent border rounded-md peer border-blue-gray-200 border-t-transparent text-blue-gray-700 outline outline-0 placeholder-shown:border placeholder-shown:border-blue-gray-200 placeholder-shown:border-t-blue-gray-200 focus:border-2 focus:border-gray-900 focus:border-t-transparent focus:outline-0 disabled:border-0 disabled:bg-blue-gray-50"
               /> */}
-              {/* <label className="before:content[' '] after:content[' '] pointer-events-none absolute left-0 -top-1.5 flex h-full w-full select-none !overflow-visible truncate text-[11px] font-normal leading-tight text-gray-500 transition-all before:pointer-events-none before:mt-[6.5px] before:mr-1 before:box-border before:block before:h-1.5 before:w-2.5 before:rounded-tl-md before:border-t before:border-l before:border-blue-gray-200 before:transition-all after:pointer-events-none after:mt-[6.5px] after:ml-1 after:box-border after:block after:h-1.5 after:w-2.5 after:flex-grow after:rounded-tr-md after:border-t after:border-r after:border-blue-gray-200 after:transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:leading-[4.1] peer-placeholder-shown:text-blue-gray-500 peer-placeholder-shown:before:border-transparent peer-placeholder-shown:after:border-transparent peer-focus:text-[11px] peer-focus:leading-tight peer-focus:text-gray-900 peer-focus:before:border-t-2 peer-focus:before:border-l-2 peer-focus:before:!border-gray-900 peer-focus:after:border-t-2 peer-focus:after:border-r-2 peer-focus:after:!border-gray-900 peer-disabled:text-transparent peer-disabled:before:border-transparent peer-disabled:after:border-transparent peer-disabled:peer-placeholder-shown:text-blue-gray-500">
+            {/* <label className="before:content[' '] after:content[' '] pointer-events-none absolute left-0 -top-1.5 flex h-full w-full select-none !overflow-visible truncate text-[11px] font-normal leading-tight text-gray-500 transition-all before:pointer-events-none before:mt-[6.5px] before:mr-1 before:box-border before:block before:h-1.5 before:w-2.5 before:rounded-tl-md before:border-t before:border-l before:border-blue-gray-200 before:transition-all after:pointer-events-none after:mt-[6.5px] after:ml-1 after:box-border after:block after:h-1.5 after:w-2.5 after:flex-grow after:rounded-tr-md after:border-t after:border-r after:border-blue-gray-200 after:transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:leading-[4.1] peer-placeholder-shown:text-blue-gray-500 peer-placeholder-shown:before:border-transparent peer-placeholder-shown:after:border-transparent peer-focus:text-[11px] peer-focus:leading-tight peer-focus:text-gray-900 peer-focus:before:border-t-2 peer-focus:before:border-l-2 peer-focus:before:!border-gray-900 peer-focus:after:border-t-2 peer-focus:after:border-r-2 peer-focus:after:!border-gray-900 peer-disabled:text-transparent peer-disabled:before:border-transparent peer-disabled:after:border-transparent peer-disabled:peer-placeholder-shown:text-blue-gray-500">
                 {"Hashtags"}
               </label> */}
-            </div>
-          </>
-        )}
+          </div>
+        </div>
+        <div className="p-6 pt-0">
+          <button
+            onClick={handleSignup1}
+            className="block w-full select-none rounded-lg bg-gradient-to-tr from-gray-900 to-gray-800 py-3 px-6 text-center align-middle font-sans text-xs font-bold uppercase text-white shadow-md shadow-gray-900/10 transition-all hover:shadow-lg hover:shadow-gray-900/20 active:opacity-[0.85] disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none"
+            type="button"
+          >
+            Next
+          </button>
+          <p className="flex justify-center mt-6 font-sans text-sm antialiased font-light leading-normal text-inherit">
+            Already have an account?{' '}
+            <Link
+              to="/"
+              className="block ml-1 font-sans text-sm antialiased font-bold leading-normal text-blue-gray-900"
+            >
+              Log In
+            </Link>
+          </p>
+        </div>
       </div>
-      <div className="p-6 pt-0">
+    );
+  } else {
+    return (
+      <div className="h-screen w-screen flex justify-center flex-col text-gray-700 w-96 rounded-xl bg-clip-border mx-auto">
+        <>
+          <div key={9} className="relative h-11 w-full min-w-[200px]">
+          </div>
+          <h2>Tag Suggestions</h2>
+          <div>
+            {topTenTagsNames.map((tag) => (
+              <button key={tag.id} onClick={() => addSearchedTagToFinal(tag)}>
+                {tag.name}
+              </button>
+            ))}
+          </div>
+          <HashTagsSelector handleSubmit={handleSignup2} doneButtonText="Sign up" finalHashtagNames={interestNames} setFinalHashtagNames={setInterestNames} />
+        </>
+        <div className="text-center text-2xl font-bold mb-4">
+          Choose your Actor:
+        </div>
+        <div className="text-center text-2xl font-bold mb-4 flex flex-wrap justify-center">
+          {matches && matches.map(match => (
+            <div key={match.name} onClick={() => handlePress(match.name, match.image)} className={`flex flex-col items-center justify-center p-4 rounded-lg cursor-pointer shadow-md mr-4 mb-4 ${formData.linked_name === match.name ? 'bg-gray-300' : 'bg-white'}`}>
+              <div className="text-lg font-bold mb-2">{match.name}</div>
+              <img src={match.image} alt={match.name} className="h-40 w-40 rounded-lg mb-2" />
+            </div>
+          ))}
+        </div>
         <button
-          onClick={isFirstPage ? handleSignup1 : handleSignup2}
+          onClick={handleSignup2}
           className="block w-full select-none rounded-lg bg-gradient-to-tr from-gray-900 to-gray-800 py-3 px-6 text-center align-middle font-sans text-xs font-bold uppercase text-white shadow-md shadow-gray-900/10 transition-all hover:shadow-lg hover:shadow-gray-900/20 active:opacity-[0.85] disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none"
           type="button"
         >
-          {isFirstPage ? 'Next' : 'Sign Up'}
+          Register
         </button>
-        <p className="flex justify-center mt-6 font-sans text-sm antialiased font-light leading-normal text-inherit">
-          Already have an account?{' '}
-          <Link
-            to="/"
-            className="block ml-1 font-sans text-sm antialiased font-bold leading-normal text-blue-gray-900"
-          >
-            Log In
-          </Link>
-        </p>
       </div>
-    </div>
-  );
-}
-
+    )
+  }
+};
 export default Signup;

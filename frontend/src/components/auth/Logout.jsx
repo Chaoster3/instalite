@@ -9,7 +9,7 @@ function Logout() {
   useEffect(() => {
     const logout = async () => {
       try {
-        await axios.get(`${BACKEND_URL}/users/logout`);
+        await axios.get(`${BACKEND_URL}/users/logout`, { withCredentials: true });
         navigate('/login');
       } catch (error) {
         console.error('Error logging out:', error);

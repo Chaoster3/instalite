@@ -3,10 +3,12 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import Navbar from "./components/navbar/Navbar";
 import Login from "./components/auth/Login";
 import Signup from "./components/auth/Signup";
+import ForgotPassword from "./components/auth/ForgotPassword";
+import ResetPassword from "./components/auth/ResetPassword.jsx";
+import ChangeTag from "./ChangeTag";
 import Home from "./Home";
 import "./App.css";
 import axios from "axios";
-
 axios.defaults.withCredentials = true;
 
 function App() {
@@ -44,6 +46,9 @@ function App() {
         />
         <Route path="/" element={<Navbar />} />
         <Route path="/home" element={<Home />} />
+        <Route path="/forgotPassword" element={<ForgotPassword />} />
+        <Route path="/resetPassword/:token" element={<ResetPassword/>} />
+        <Route path="/changeTags" element={<ChangeTag />} />
       </Routes>
     </Router>
   );

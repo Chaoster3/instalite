@@ -65,29 +65,47 @@ export function Friends() {
   };
 
   return (
-    <div>
-      <h1>Friends</h1>
-        <ul style={{ listStyleType: 'none', padding: 0 }}>
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-4">Friends</h1>
+        <ul className="divide-y divide-gray-300">
           {friends.map((friend, index) => (
-            <li key={index} style={{ marginBottom: '10px', borderBottom: '1px solid #ccc', paddingBottom: '5px' }}>
-              <span style={{ marginRight: '10px' }}>{friend.username}</span>
-              <span style={{ color: friend.logged_in === 0 ? 'red' : 'green' }}>{friend.logged_in === 0 ? "Inactive" : "Active"}</span>
-              <button style={{ marginLeft: '10px', backgroundColor: '#007bff', color: '#fff', border: 'none', padding: '5px 10px', borderRadius: '5px', cursor: 'pointer' }} onClick={() => removeFriend(friend.user_id)}>Remove</button>
+            <li key={index} className="py-4 flex items-center justify-between">
+              <div>
+                <span className="mr-4">{friend.username}</span>
+                <span className={`text-sm font-medium ${friend.logged_in === 0 ? 'text-red-500' : 'text-green-500'}`}>
+                  {friend.logged_in === 0 ? 'Inactive' : 'Active'}
+                </span>
+              </div>
+              <button
+                className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:bg-blue-600"
+                onClick={() => removeFriend(friend.user_id)}
+              >
+                Remove
+              </button>
             </li>
           ))}
         </ul>
+      </div>
 
-      <hr></hr>
+      <hr className="my-8" />
 
-      <h1>Friend Recommendations</h1>
-      <ul>
-        {friendRecommendationNames.map((recommendation, index) => (
-          <li key={index}>
-            {recommendation.username}
-            <button onClick={() => addFriend(recommendation.user_id)}>Add</button>
-          </li>
-        ))}
-      </ul>
+      <div>
+        <h1 className="text-3xl font-bold mb-4">Friend Recommendations</h1>
+        <ul className="divide-y divide-gray-300">
+          {friendRecommendationNames.map((recommendation, index) => (
+            <li key={index} className="py-4 flex items-center justify-between">
+              <span>{recommendation.username}</span>
+              <button
+                className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:bg-green-600"
+                onClick={() => addFriend(recommendation.user_id)}
+              >
+                Add
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }

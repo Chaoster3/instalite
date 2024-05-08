@@ -145,79 +145,70 @@ const CreatePosts = () => {
   ];
 
   return (
-    <div className="h-screen w-screen flex justify-center flex-col text-gray-700 w-96 rounded-xl bg-clip-border mx-auto">
-      <div className="text-center text-2xl font-bold mb-4">
-        Create a Post
-      </div>
-      <div className="flex flex-col gap-4 p-6">
-        {inputFields.map((field, index) => (
-          <div key={index} className="relative h-11 w-full min-w-[200px]">
-            <input
-              type={field.type}
-              name={field.name}
-              value={form[field.name]}
-              onChange={handleChange}
-              placeholder={field.placeholder}
-              className="h-full w-full px-2 py-1 border border-gray-300 rounded-md"
-            />
+    <div className="min-h-screen flex justify-center items-center bg-gray-200">
+      <div className="bg-white p-8 rounded-lg shadow-lg w-96">
+        <div className="text-center text-2xl font-bold mb-4">
+          Create a Post
+        </div>
+        <div className="space-y-4">
+          {inputFields.map((field, index) => (
+            <div key={index}>
+              <input
+                type={field.type}
+                name={field.name}
+                value={form[field.name]}
+                onChange={handleChange}
+                placeholder={field.placeholder}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"
+              />
+            </div>
+          ))}
+          <hr />
+          <div>
+            <h2 className="text-lg font-semibold mb-2">Choose New Tags</h2>
+            <div className="flex items-center space-x-2">
+              <input
+                type="text"
+                placeholder="Search for tags"
+                value={searchInput}
+                onChange={handleSearchInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"
+              />
+              <button onClick={searchTags} className="bg-blue-500 text-white px-4 py-2 rounded-md">Search</button>
+            </div>
+            {isLoading && <div>Loading...</div>}
+            {errorMessage && <div className="text-red-500">{errorMessage}</div>}
+            <div className="flex flex-wrap mt-2">
+              {searchResults && searchResults.map((tag) => (
+                <button key={tag.id} onClick={() => addSearchedTagToFinal(tag)} className="bg-gray-200 text-gray-700 px-3 py-1 rounded-md mr-2 mb-2">{tag.name}</button>
+              ))}
+            </div>
+            <div className="flex items-center space-x-2 mt-4">
+              <input
+                type="text"
+                placeholder="Enter new tag"
+                value={newTagInput}
+                onChange={handleNewTagInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"
+              />
+              <button onClick={createTag} className="bg-blue-500 text-white px-4 py-2 rounded-md">Create</button>
+            </div>
           </div>
-        ))}
-        <br></br>
-        <hr />
-        <br></br>
-        <h2>Choose New Tags</h2>
-        <div>
-          <input
-            type="text"
-            placeholder="Search for tags"
-            value={searchInput}
-            onChange={handleSearchInputChange}
-          />
-          <button onClick={searchTags}>Search</button>
+          <hr />
+          <div>
+            <h2 className="text-lg font-semibold mb-2">Final Tags</h2>
+            <div className="flex flex-wrap">
+              {form.hashtag_names.map((tagName, index) => (
+                <button key={index} onClick={() => removeFinalTag(tagName)} className="bg-gray-200 text-gray-700 px-3 py-1 rounded-md mr-2 mb-2">{tagName}</button>
+              ))}
+            </div>
+            {formStatus && <p className={formStatus.includes('successful') ? 'text-green-500' : 'text-red-500'}>{formStatus}</p>}
+            <button onClick={handleSubmit} className="bg-blue-500 text-white px-4 py-2 rounded-md mt-4">Submit</button>
+          </div>
         </div>
-
-        {isLoading && <div>Loading...</div>}
-        {errorMessage && <div>{errorMessage}</div>}
-
-        <div>
-          {searchResults && searchResults.map((tag) => (
-            <button key={tag.id} onClick={() => addSearchedTagToFinal(tag)}>
-              {tag.name}
-            </button>
-          ))}
-        </div>
-
-        <div>
-          <input
-            type="text"
-            placeholder="Enter new tag"
-            value={newTagInput}
-            onChange={handleNewTagInputChange}
-          />
-          <button onClick={createTag}>Create</button>
-        </div>
-
-        {/* Render finalTags */}
-        <br></br>
-        <hr />
-        <br></br>
-        <div>
-          <h2>Final Tags</h2>
-          {form.hashtag_names.map((tagName) => (
-            <button
-              key={tagName}
-              onClick={() => removeFinalTag(tagName)}
-            >
-              {tagName}
-            </button>
-          ))}
-        </div>
-        {formStatus && <p className={formStatus.includes('successful') ? 'text-green-500' : 'text-red-500'}>{formStatus}</p>}
-        <button className="bg-blue-500 text-white py-2 rounded-md" onClick={handleSubmit}>
-          Submit
-        </button>
       </div>
     </div>
   );
+
 }
 export default CreatePosts

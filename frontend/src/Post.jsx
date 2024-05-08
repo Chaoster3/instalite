@@ -118,48 +118,68 @@ const Post = ({ post }) => {
     getPostComments();
   }, []);
 
-
   return (
-    <div className="border rounded-md p-2 mb-2">
-      <li>
-        <h1>Post</h1>
-        <h2>Author: {post.username}</h2>
-        {/* <p>Content: {post.content}</p> */}
-        <p>Content: <span dangerouslySetInnerHTML={{ __html: post.content }} /></p>
-        {post.hashtag_names.length > 0 && (
-          <li>hashtag: {post.hashtag_names.join(', ')}</li>
-        )}
+    <div className="border rounded-md p-4 mb-4">
+      <div className="mb-4">
+        <div className="mb-2">
+          <h2 className="text-lg font-medium">Author: {post.username}</h2>
+          <p className="mb-2">Content: <span dangerouslySetInnerHTML={{ __html: post.content }} /></p>
+          {post.hashtag_names.length > 0 && (
+            <p className="mb-2">Hashtags: {post.hashtag_names.join(', ')}</p>
+          )}
+        </div>
+        <div className="mb-4">
+          {/* Like or unlike button */}
+          <button
+            className={`px-4 py-2 rounded-md font-medium ${likedPost ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'}`}
+            onClick={() => likedPost ? handleUnlikePost(post.post_id) : handleLikePost(post.post_id)}
+          >
+            {likedPost ? 'Unlike' : 'Like'}
+          </button>
+        </div>
+      </div>
 
-        {/* Like or unlike button */}
-        {likedPost ? (
-          <button onClick={() => handleUnlikePost(post.post_id)}>Unlike</button>
-        ) : (
-          <button onClick={() => handleLikePost(post.post_id)}>Like</button>
-        )}
-
-        {/* Comments */}
-        <hr></hr>
-        <h1>Comments</h1>
+      {/* Comments */}
+      <hr className="my-4" />
+      <div className="mb-4">
+        <h1 className="text-xl font-semibold mb-2">Comments</h1>
         <ul>
           {existingComments.map((obj, index) => (
-            <li key={index} style={{ marginBottom: '20px' }}>
-              <p>Content: {obj.content}</p>
-              <p>Author: {obj.author}</p>
-              {obj.hashtag_ids && (
-                <li>hashtag: {obj.hashtag_ids.join(', ')}</li>
-              )}
-              <p>Timestamp: {obj.timestamp}</p>
+            <li key={index} className="mb-6">
+              <div className="border border-gray-300 rounded-md p-4">
+                <p className="mb-2">Content: {obj.content}</p>
+                <p className="mb-2">Author: {obj.author}</p>
+                {obj.hashtag_ids && (
+                  <p className="mb-2">Hashtags: {obj.hashtag_ids.join(', ')}</p>
+                )}
+                <p className="text-gray-500">Timestamp: {obj.timestamp}</p>
+              </div>
             </li>
           ))}
         </ul>
+      </div>
 
-        <hr></hr>
-        <h1>Post a Comment?</h1>
-        <input type="text" value={commentText} onChange={(e) => setCommentText(e.target.value)}/>
-      </li>
-      <HashTagsSelector handleSubmit={handleCommentSubmit} doneButtonText="Create Comment" finalHashtagNames={commentHashtagNames} setFinalHashtagNames={setCommentHashtagNames} />
+      {/* Post a Comment */}
+      <hr className="my-4" />
+      <div>
+        <h1 className="text-xl font-semibold mb-2">Post a Comment</h1>
+        <input
+          type="text"
+          className="border border-gray-300 rounded-md px-3 py-2 mb-2"
+          placeholder="Enter your comment..."
+          value={commentText}
+          onChange={(e) => setCommentText(e.target.value)}
+        />
+        <HashTagsSelector
+          handleSubmit={handleCommentSubmit}
+          doneButtonText="Create Comment"
+          finalHashtagNames={commentHashtagNames}
+          setFinalHashtagNames={setCommentHashtagNames}
+        />
+      </div>
     </div>
   )
+
 }
 
 export default Post

@@ -10,7 +10,7 @@ const Home = () => {
   // Display the current logged in user's name
   const [user, setUser] = useState("");
   const [posts, setPosts] = useState([]);
-  
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -55,16 +55,17 @@ const Home = () => {
   }, []);
 
   return (
-    <div>
-      <h1>Welcome, {user}!</h1>
-      <ul>
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-3xl font-bold mb-6">Welcome, {user}!</h1>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Render posts */}
         {posts.map((post, index) => (
           <Post key={index} post={post} />
         ))}
-      </ul>
+      </div>
     </div>
   );
+
 
 }
 

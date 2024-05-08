@@ -1,5 +1,26 @@
-package edu.upenn.cis.nets2120.hw3.livy;
+package edu.upenn.cis.nets2120.hw3;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.ResultSet;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import org.apache.commons.collections.map.HashedMap;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.sql.SparkSession;
+
+import edu.upenn.cis.nets2120.config.Config;
+import edu.upenn.cis.nets2120.storage.SparkConnector;
+import scala.Tuple2;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
@@ -42,6 +63,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import io.github.cdimascio.dotenv.Dotenv;
 import java.util.Collections;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.apache.livy.JobContext;
 import org.apache.spark.api.java.JavaPairRDD;
@@ -49,128 +71,127 @@ import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.PairFlatMapFunction;
 import org.apache.spark.sql.SparkSession;
 
-import edu.upenn.cis.nets2120.config.Config;
-import edu.upenn.cis.nets2120.hw3.SparkJob;
 import scala.Tuple2;
 
-public class AdsorptionJob extends SparkJob<String> {
+public class FriendsOfFriendsSpark {
+    static Logger logger = LogManager.getLogger(FriendsOfFriendsSpark.class);
+
     /**
-     *
+     * Connection to Apache Spark
      */
-    private static final long serialVersionUID = 1L;
+    SparkSession spark;
+    JavaSparkContext context;
 
-    int max_answers = 1000;
-
-    public AdsorptionJob() {
-        super(false, false, false);
+    public FriendsOfFriendsSpark() {
+        System.setProperty("file.encoding", "UTF-8");
     }
 
     /**
-     * Main functionality in the program: read and process the social network
-     * Runs the SocialRankJob and returns a list of the top 10 nodes with the
-     * highest SocialRank values.
+     * Initialize the database connection. Do not modify this method.
      *
-     * @param debug a boolean indicating whether to enable debug mode
-     * @return a list of MyPair objects representing the top 10 nodes with their
-     *         corresponding SocialRank values
-     * @throws IOException          if there is an error reading the social network
-     *                              file
-     * @throws InterruptedException if the execution is interrupted
+     * @throws InterruptedException User presses Ctrl-C
      */
-    public String run(boolean debug) throws IOException, InterruptedException {
-        System.out.println("Running");
-        Dotenv dotenv = Dotenv.configure().load();
+    public void initialize() throws InterruptedException {
+        logger.info("Connecting to Spark...");
 
-        // Access variables
-        String dbUser = dotenv.get("RDS_USER");
-        String dbPassword = dotenv.get("RDS_PWD");
-        String rdsHost = dotenv.get("RDS_HOST");
-        String rdsPort = dotenv.get("RDS_PORT");
+        spark = SparkConnector.getSparkConnection();
+        context = SparkConnector.getSparkContext();
 
-        SparkSession spark = SparkSession.builder()
-                .appName("SparkJob")
-                .getOrCreate();
+        logger.debug("Connected!");
+    }
 
-        // Define JDBC connection properties
-        String url = "jdbc:mysql://" + rdsHost + ":" + rdsPort + "/pennstagram";
-        Properties connectionProperties = new Properties();
-        connectionProperties.setProperty("user", dbUser);
-        connectionProperties.setProperty("password", dbPassword);
+    public Dataset<Row> getTable(String table) {
+        try {
+            logger.info("Loading data from table: " + table);
+
+            // Use DataFrameReader to handle the JDBC connection
+            DataFrameReader dataFrameReader = spark.read()
+                    .format("jdbc")
+                    .option("url", Config.DATABASE_CONNECTION)
+                    .option("dbtable", table)
+                    .option("user", Config.DATABASE_USERNAME)
+                    .option("password", Config.DATABASE_PASSWORD);
+
+            // Load the table into a Dataset<Row>
+            Dataset<Row> df = dataFrameReader.load();
+
+            return df;
+        } catch (Exception e) {
+            logger.error("An error occurred: " + e.getMessage(), e);
+        }
+        // Return an empty Dataset if unable to load data
+        return spark.emptyDataFrame();
+    }
+
+    /**
+     * Main functionality in the program: read and process the social network. Do
+     * not modify this method.
+     *
+     * @throws IOException          File read, network, and other errors
+     * @throws InterruptedException User presses Ctrl-C
+     */
+    public void run() throws IOException, InterruptedException {
+        logger.info("Running");
 
         // Read data from RDS
-        Dataset<Row> hashtags = spark.read().jdbc(url, "hashtags", connectionProperties);
-        Dataset<Row> posts = spark.read().jdbc(url, "posts", connectionProperties);
-        Dataset<Row> users = spark.read().jdbc(url, "users", connectionProperties);
-        Dataset<Row> friends = spark.read().jdbc(url, "friends", connectionProperties);
-
+        Dataset<Row> hashtags = getTable("hashtags");
+        Dataset<Row> posts = getTable("posts");
+        Dataset<Row> users = getTable("users");
+        Dataset<Row> friends = getTable("friends");
+        System.out.println("Loaded tables");
         JavaPairRDD<String, Map<String, Double>> vertices = vertices(hashtags, posts, users);
-
+        System.out.println("Loaded vertices");
         JavaPairRDD<String, Tuple2<String, Double>> user_edges = edges(hashtags, posts, users, friends);
+        System.out.println("Loaded edges");
 
         JavaPairRDD<String, Map<String, Double>> adsorption_vertices = adsorption(vertices, user_edges);
+        System.out.println("Loaded adsorption vertices");
 
         JavaPairRDD<String, Map<String, Double>> userDistributions = userDistributions(adsorption_vertices);
+        System.out.println("Loaded user distributions");
 
         JavaPairRDD<String, Map<String, Double>> friendRecommendations = friendRecommendations(adsorption_vertices,
                 friends);
+        System.out.println("Loaded friend recommendations");
 
-        // Write data back to RDS
-        userDistributions.foreach(tuple -> {
-            String userId = tuple._1;
-            Map<String, Double> rankDistribution = tuple._2;
+        ObjectMapper mapper = new ObjectMapper();
 
-            byte[] serializedRankDistribution = serializeObject(rankDistribution);
-
-            try (Connection conn = DriverManager.getConnection(url, dbUser, dbPassword)) {
-                String updateQuery = "UPDATE users SET rank_distribution = ? WHERE user_id = ?";
-                PreparedStatement preparedStatement = conn.prepareStatement(updateQuery);
-                preparedStatement.setBytes(1, serializedRankDistribution);
-                preparedStatement.setString(2, userId);
-                preparedStatement.executeUpdate();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-        });
-
-        friendRecommendations.foreach(tuple -> {
-            String userId = tuple._1;
-            Map<String, Double> rankDistribution = tuple._2;
-
-            byte[] serializedRankDistribution = serializeObject(rankDistribution);
-
-            try (Connection conn = DriverManager.getConnection(url, dbUser, dbPassword)) {
-                String updateQuery = "UPDATE users SET friend_recommendation = ? WHERE user_id = ?";
-                PreparedStatement preparedStatement = conn.prepareStatement(updateQuery);
-                preparedStatement.setBytes(1, serializedRankDistribution);
-                preparedStatement.setString(2, userId);
-                preparedStatement.executeUpdate();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-        });
-        return "Success";
-    }
-
-    @Override
-    public String call(JobContext arg0) throws Exception {
-        initialize();
-        return run(false);
-    }
-
-    private static byte[] serializeObject(Object obj) {
         try {
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            ObjectOutputStream oos = new ObjectOutputStream(bos);
-            oos.writeObject(obj);
-            oos.flush();
-            byte[] bytes = bos.toByteArray();
-            bos.close();
-            oos.close();
-            return bytes;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
+            // Collect the results to the driver node
+            List<Tuple2<String, Map<String, Double>>> userDistList = userDistributions.collect();
+            List<Tuple2<String, Map<String, Double>>> friendRecList = friendRecommendations.collect();
+
+            // Open a single connection
+            try (Connection connection = DriverManager.getConnection(Config.DATABASE_CONNECTION,
+                    Config.DATABASE_USERNAME, Config.DATABASE_PASSWORD)) {
+                // Prepare the statement for user distributions
+                String userDistQuery = "UPDATE users SET rank_distribution = ? WHERE user_id = ?";
+                try (PreparedStatement userDistStmt = connection.prepareStatement(userDistQuery)) {
+                    for (Tuple2<String, Map<String, Double>> tuple : userDistList) {
+                        userDistStmt.setString(1, mapper.writeValueAsString(tuple._2));
+                        userDistStmt.setString(2, tuple._1);
+                        userDistStmt.addBatch();
+                    }
+                    userDistStmt.executeBatch(); // Execute all updates together
+                }
+
+                // Prepare the statement for friend recommendations
+                String friendRecQuery = "UPDATE users SET friend_recommendation = ? WHERE user_id = ?";
+                try (PreparedStatement friendRecStmt = connection.prepareStatement(friendRecQuery)) {
+                    for (Tuple2<String, Map<String, Double>> tuple : friendRecList) {
+                        friendRecStmt.setString(1, mapper.writeValueAsString(tuple._2));
+                        friendRecStmt.setString(2, tuple._1);
+                        friendRecStmt.addBatch();
+                    }
+                    friendRecStmt.executeBatch(); // Execute all updates together
+                }
+            }
+        } catch (SQLException e) {
+            logger.error("Error sending recommendations to database: " + e.getMessage(), e);
+        } catch (Exception e) {
+            logger.error("Error processing JSON: " + e.getMessage(), e);
         }
+        logger.info("*** Finished! ***");
     }
 
     static JavaPairRDD<String, Map<String, Double>> vertices(Dataset<Row> hashtags, Dataset<Row> posts,
@@ -198,39 +219,51 @@ public class AdsorptionJob extends SparkJob<String> {
             Dataset<Row> users,
             Dataset<Row> friends) {
         JavaPairRDD<String, String> user_edges = users.toJavaRDD().flatMapToPair(row -> {
-            long user_id = row.getAs("user_id");
+            int user_id = row.getAs("user_id");
             String user_id_str = "user" + user_id;
             String interests = (String) row.getAs("interests");
 
             List<Tuple2<String, String>> edges = new ArrayList<>();
-            for (String hashtag : interests.substring(1, interests.length() - 1).split(",")) {
-                edges.add(new Tuple2<>(user_id_str, "hash" + hashtag));
-                edges.add(new Tuple2<>("hash" + hashtag, user_id_str));
+            if (interests != null && !interests.isEmpty() && !interests.equals("[]") && !interests.equals(",")) {
+                // for (String hashtag : interests.substring(1, interests.length() -
+                // 1).split(",")) {
+                // edges.add(new Tuple2<>(user_id_str, "hash" + hashtag));
+                // edges.add(new Tuple2<>("hash" + hashtag, user_id_str));
+                // }
+                for (String hashtag : interests.split(",")) {
+                    edges.add(new Tuple2<>(user_id_str, "hash" + hashtag));
+                    edges.add(new Tuple2<>("hash" + hashtag, user_id_str));
+                }
             }
+            edges.add(new Tuple2<>("shadow" + user_id, user_id_str));
             return edges.iterator();
         });
 
         JavaPairRDD<String, String> hash_post_edges = posts.toJavaRDD().flatMapToPair(row -> {
-            long post_id = row.getAs("post_id");
+            int post_id = row.getAs("post_id");
             String post_id_str = "post" + post_id;
-            String interests = row.getAs("interests");
-            String likes = row.getAs("likes");
+            String interests = row.getAs("hashtag_ids");
+            String likes = row.getAs("user_ids_who_liked");
 
             List<Tuple2<String, String>> edges = new ArrayList<>();
-            for (String hashtag : interests.substring(1, interests.length() - 1).split(",")) {
-                edges.add(new Tuple2<>("hash" + hashtag, post_id_str));
-                edges.add(new Tuple2<>(post_id_str, "hash" + hashtag));
+            if (interests != null && !interests.isEmpty() && !interests.equals("[]")) {
+                for (String hashtag : interests.substring(1, interests.length() - 1).split(",")) {
+                    edges.add(new Tuple2<>("hash" + hashtag, post_id_str));
+                    edges.add(new Tuple2<>(post_id_str, "hash" + hashtag));
+                }
             }
-            for (String like : likes.substring(1, likes.length() - 1).split(",")) {
-                edges.add(new Tuple2<>("user" + like, post_id_str));
-                edges.add(new Tuple2<>(post_id_str, "user" + like));
+            if (likes != null && !likes.isEmpty() && !likes.equals("[]")) {
+                for (String like : likes.substring(1, likes.length() - 1).split(",")) {
+                    edges.add(new Tuple2<>("user" + like, post_id_str));
+                    edges.add(new Tuple2<>(post_id_str, "user" + like));
+                }
             }
             return edges.iterator();
         });
 
         JavaPairRDD<String, String> user_user_edges = friends.toJavaRDD().flatMapToPair(row -> {
-            long user_id1 = row.getAs("follower");
-            long user_id2 = row.getAs("followed");
+            int user_id1 = row.getAs("follower");
+            int user_id2 = row.getAs("followed");
             String user_id1_str = "user" + user_id1;
             String user_id2_str = "user" + user_id2;
 
@@ -353,8 +386,8 @@ public class AdsorptionJob extends SparkJob<String> {
     static JavaPairRDD<String, Map<String, Double>> friendRecommendations(
             JavaPairRDD<String, Map<String, Double>> vertices, Dataset<Row> friends) {
         JavaPairRDD<Tuple2<String, String>, String> user_user_edges = friends.toJavaRDD().flatMapToPair(row -> {
-            String user_id1_str = row.getAs("follower");
-            String user_id2_str = row.getAs("followed");
+            String user_id1_str = row.getAs("follower") + "";
+            String user_id2_str = row.getAs("followed") + "";
             if (user_id1_str.equals(user_id2_str)) {
                 return Collections.emptyIterator();
             }
@@ -403,4 +436,28 @@ public class AdsorptionJob extends SparkJob<String> {
         return friend_recommendations;
     }
 
+    /**
+     * Graceful shutdown
+     */
+    public void shutdown() {
+        logger.info("Shutting down");
+
+        if (spark != null) {
+            spark.close();
+        }
+    }
+
+    public static void main(String[] args) {
+        final FriendsOfFriendsSpark fofs = new FriendsOfFriendsSpark();
+        try {
+            fofs.initialize();
+            fofs.run();
+        } catch (final IOException ie) {
+            logger.error("IO error occurred: " + ie.getMessage(), ie);
+        } catch (final InterruptedException e) {
+            logger.error("Interrupted: " + e.getMessage(), e);
+        } finally {
+            fofs.shutdown();
+        }
+    }
 }

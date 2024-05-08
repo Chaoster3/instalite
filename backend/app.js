@@ -18,8 +18,8 @@ let collection;
 chroma.startChroma().then(col => collection = col);
 
 app.use((req, res, next) => {
-    req.collection = collection;
-    next();
+  req.collection = collection;
+  next();
 });
 // Up to here
 
@@ -50,14 +50,16 @@ app.use((req, res, next) => {
 
     next();
   }
-  // sessionMiddleWear(req, res, myNext);
+  sessionMiddleWear(req, res, myNext);
 })
 
 app.use(express.json());
 app.use('/images', express.static(path.join(__dirname, '/images')));
-app.use(cors({credentials:true, origin: true}));
+app.use(cors({ credentials: true, origin: true }));
 
-
+app.use(session({
+  secret: 'nets2120_insecure', saveUninitialized: true, cookie: { httpOnly: false }, resave: true
+}));
 
 app.use('/users', userRouter);
 app.use('/posts', postsRouter);

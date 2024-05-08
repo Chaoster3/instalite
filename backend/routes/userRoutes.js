@@ -24,7 +24,7 @@ router.route('/changeActor').put(userController.changeActor); // need to verify 
 router.route('/getAllFriends').get(userController.getAllFriends);
 router.route('/getPostsMainPage').get(userController.getPostsMainPage);
 router.route('/getPostsProminentFigures').get(userController.getPostsProminentFigures); // TODO: implement this
-router.route('/addFriends').post(userController.addFriends);
+// router.route('/addFriends').post(userController.addFriends);
 router.route('/removeFriends').post(userController.removeFriends);
 router.route('/sendFriendRequest').post(userController.sendFriendRequest);
 

@@ -1,9 +1,10 @@
 const dbsingleton = require('../access/db_access');
 const HTTP_STATUS = require('../utils/httpStatus');
+const kafka = require('../kafka');
 const db = dbsingleton;
 
 exports.createPost = async (req, res) => {
-  const { image, content, hashtag_names } = req.body;
+  const { content, hashtag_names } = req.body;
 
   // Check if user is logged in
   if (req.session.user_id == null) {
@@ -37,6 +38,13 @@ exports.createPost = async (req, res) => {
     await db.send_sql(
       `INSERT INTO posts (author_id, image, content, hashtag_ids) VALUES ('${req.session.user_id}', '${image}', '${content}', '${hashtag_ids}')`
     );
+    const latest = await db.send_sql(
+      `SELECT MAX(post_id) as latest FROM posts`
+    );
+    const data = await db.send_sql(
+      `SELECT username FROM users WHERE user_id = ${req.session.user_id}`
+    );
+    await kafka.publishPost(data[0].username, latest[0].latest, content);
     return res
       .status(HTTP_STATUS.CREATED)
       .json({ success: 'Post created successfully.' });

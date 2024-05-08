@@ -107,8 +107,8 @@ function Signup() {
       for (const key in formData) {
         body.append(key, formData[key]);
       }
-
       const response = await axios.post(`${BACKEND_URL}/users/getClosest`, body)
+      console.log("here")
       if (response.status === 200) {
         const resMatches = response.data.matches
         const modMatches = resMatches.map(match => ({

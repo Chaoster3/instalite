@@ -868,6 +868,7 @@ exports.getFriendRecommendation = async (req, res) => {
 }
 
 exports.checkIfLikedPost = async (req, res) => {
+    console.log("hello");
   const { postId } = req.params;
   const { user_id } = req.session;
 

@@ -104,30 +104,6 @@ export function Friends() {
   };
 
 
-  // Function to add a friend
-  const addFriend = async (friendId) => {
-    console.log("Trying to add friend with id", friendId)
-    try {
-      await axios.post(`${BACKEND_URL}/users/addFriend/${friendId}`);
-      getFriends();
-      getFriendRecommendations();
-    } catch (error) {
-      console.error('Error adding friend:', error);
-    }
-  };
-
-  // Function to remove a friend
-  const removeFriend = async (friendId) => {
-    console.log("Trying to remove friend with id", friendId)
-    try {
-      await axios.post(`${BACKEND_URL}/users/removeFriend/${friendId}`);
-      getFriends();
-      getFriendRecommendations();
-    } catch (error) {
-      console.error('Error removing friend:', error);
-    }
-  };
-
   return (
     <div>
       <h1>Friends</h1>

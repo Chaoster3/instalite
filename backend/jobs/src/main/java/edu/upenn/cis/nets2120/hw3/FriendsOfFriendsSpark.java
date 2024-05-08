@@ -258,6 +258,8 @@ public class FriendsOfFriendsSpark {
                     edges.add(new Tuple2<>(post_id_str, "user" + like));
                 }
             }
+            edges.add(new Tuple2<>("user"+row.getAs("author_id"), post_id_str));
+            edges.add(new Tuple2<>(post_id_str, "user"+row.getAs("author_id")));
             return edges.iterator();
         });
 

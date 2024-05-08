@@ -1,17 +1,26 @@
-const io = require('socket.io')(server, {
+const express = require('express');
+const http = require('http');
+const socketIo = require('socket.io');
+
+const app = express();
+const server = http.createServer(app);
+const io = socketIo(server, {
     cors: {
-        origin: "*",  // gotta fill in frontend URL
-        methods: ["GET", "POST"]
+        origin: "http://localhost:5173",
+        methods: ["GET", "POST"],
+        credentials: true
     }
 });
 
-const chatController = require('./chatController');
+const chatController = require('../controllers/chatController');
 
 const userSockets = new Map();  // Map to hold userId to socketId
 
 io.on('connection', socket => {
     console.log('A user connected:', socket.id);
-    userSockets.set(userId, socket.id);
+    // userSockets.set(req.session.user_id, socket.id);
+    userSockets.set(1, socket.id);
+
 
 
     socket.on('createChat', async ({ userIds, chatName }) => {
@@ -92,4 +101,10 @@ io.on('connection', socket => {
     socket.on('rejectInvite', ({ sessionId, userId }) => {
         socket.to(userId).emit('inviteRejected', { sessionId });
     });
+});
+
+server.listen(3005, () => {
+    console.log('Server is running on http://localhost:3005');
+}).on('error', err => {
+    console.error('Server failed to start:', err);
 });

@@ -1,3 +1,6 @@
+const dbsingleton = require('../access/db_access');
+
+
 const db = dbsingleton;
 
 
@@ -33,31 +36,31 @@ exports.handleDisconnect = async (socketId) => {
 };
 
 exports.updateUserStatus = async (userId, sessionId, isActive) => {
-    const sql = `UPDATE session_memberships SET is_active = ? WHERE user_id = ? AND session_id = ?`;
-    await db.send_sql(sql, [isActive ? 1 : 0, userId, sessionId]);
+    const sql = `UPDATE session_memberships SET is_active = ${isActive} WHERE user_id = ${userId} AND session_id = ${sessionId}`;
+    await db.send_sql(sql);
 };
 
 exports.checkSessionMembers = async (sessionId) => {
-    const sql = `SELECT user_id FROM session_memberships WHERE session_id = ? AND is_active = TRUE`;
-    const activeMembers = await db.send_sql(sql, [sessionId]);
+    const sql = `SELECT user_id FROM session_memberships WHERE session_id = ${sessionId} AND is_active = TRUE`;
+    const activeMembers = await db.send_sql(sql);
     if (activeMembers.length === 0) {
         await this.deleteSession(sessionId);
     }
 };
 
 exports.deleteSession = async (sessionId) => {
-    const sql = `DELETE FROM chat_sessions WHERE session_id = ?`;
-    await db.send_sql(sql, [sessionId]);
+    const sql = `DELETE FROM chat_sessions WHERE session_id = ` + sessionId;
+    await db.send_sql(sql);
 };
 
 exports.getSessionUsers = async (sessionId) => {
-    const sql = `SELECT u.user_id, u.username, u.avatar_url FROM users u JOIN session_memberships sm ON u.user_id = sm.user_id WHERE sm.session_id = ?`;
-    return db.send_sql(sql, [sessionId]);
+    const sql = `SELECT u.user_id, u.username, u.avatar_url FROM users u JOIN session_memberships sm ON u.user_id = sm.user_id WHERE sm.session_id = ` + sessionId;
+    return db.send_sql(sql);
 };
 
 exports.createChatSession = async (chatName, userIds) => {
     const sql = `INSERT INTO chat_sessions (session_name) VALUES (?)`;
-    const result = await db.send_sql(sql, [chatName]);
+    const result = await db.insert_items(sql, [chatName]);
     const sessionId = result.insertId;
 
     return sessionId;
@@ -68,8 +71,8 @@ exports.loadUserChats = async (userId) => {
         SELECT sm.session_id, cs.session_name
         FROM session_memberships sm
         JOIN chat_sessions cs ON sm.session_id = cs.session_id
-        WHERE sm.user_id = ?`;
-    const sessions = await db.send_sql(sessionsSql, [userId]);
+        WHERE sm.user_id = ` + userId;
+    const sessions = await db.send_sql(sessionsSql);
 
     return Promise.all(sessions.map(async (session) => {
         const usersSql = `

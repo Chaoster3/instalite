@@ -16,7 +16,7 @@ import {
   HeartIcon,
   DocumentIcon
 } from "@heroicons/react/24/solid";
-import { Chat } from "../../Chat";
+import Chat from "../../alt_Chat";
 import { Friends } from "../../Friends";
 import Home from "../../Home";
 import CreatePosts from "../../CreatePosts";

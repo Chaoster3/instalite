@@ -16,15 +16,15 @@ router.route('/resetPassword').post(authController.resetPassword);
 router.route('/checkIfLoggedIn').get(authController.checkIfLoggedIn); // returns true if the user is logged in
 
 // User routes
-router.route('/getFiveClosestActors').get(userController.getFiveClosestActors); // need to verify that it works
+//router.route('/getFiveClosestActors').get(userController.getAllFriends); // need to verify that it works
 router.route('/changeActor').put(userController.changeActor); // need to verify that it works
-router.route('/uploadProfilePicture').put(userController.uploadProfilePicture); // need to verify that it works
+//router.route('/uploadProfilePicture').put(userController.uploadProfilePicture); // need to verify that it works
 
 // get all the current user's friends
 router.route('/getAllFriends').get(userController.getAllFriends);
 router.route('/getPostsMainPage').get(userController.getPostsMainPage);
 router.route('/getPostsProminentFigures').get(userController.getPostsProminentFigures); // TODO: implement this
-router.route('/addFriends').post(userController.addFriends);
+//router.route('/addFriends').post(userController.addFriends);
 router.route('/removeFriends').post(userController.removeFriends);
 router.route('/getUsernameFromID/:userId').get(userController.getUsernameFromID);
 

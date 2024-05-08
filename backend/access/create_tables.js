@@ -71,7 +71,7 @@ async function create_tables(db) {
       email VARCHAR(255), \
       affiliation VARCHAR(255), \
       birthday DATE, \
-      interests VARCHAR(255), \
+      interests JSON, \
       logged_in BOOLEAN DEFAULT FALSE, \
       PRIMARY KEY(user_id), \
       FOREIGN KEY(linked_nconst) REFERENCES names(nconst) \
@@ -133,7 +133,7 @@ async function create_tables(db) {
       post_id INT, \
       author_id INT, \
       content VARCHAR(255), \
-      hashtag_ids VARCHAR(255), \
+      hashtag_ids JSON, \
       timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP, \
       PRIMARY KEY(comment_id), \
       FOREIGN KEY(post_id) REFERENCES posts(post_id), \

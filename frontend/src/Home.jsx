@@ -55,7 +55,7 @@ const Home = () => {
   }, []);
 
   return (
-    <div>
+    <div className="bg-grey-200">
       <h1>Welcome, {user}!</h1>
       <ul>
         {/* Render posts */}

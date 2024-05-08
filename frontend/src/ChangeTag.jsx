@@ -10,6 +10,7 @@ const ChangeTag = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [finalTags, setFinalTags] = useState([]);
   const [topTenTagsNames, setTopTenTagsNames] = useState([]);
+  const [successMessage, setSuccessMessage] = useState('');
 
 
   // Function to handle search input change
@@ -75,6 +76,7 @@ const ChangeTag = () => {
 
       if (response.status === 200) {
         console.log('Successfully updated user hashtags');
+        setSuccessMessage('Successfully updated user hashtags');
       } else {
         setErrorMessage('Error updating user hashtags. Please try again later.');
       }
@@ -121,74 +123,83 @@ const ChangeTag = () => {
   }, []);
 
   return (
-    <div>
-      <h2>Tag Suggestions</h2>
-      <div>
-        {topTenTagsNames.map((tag) => (
-          <button key={tag.id} onClick={() => addSearchedTagToFinal(tag)}>
-            {tag.name}
-          </button>
-        ))}
+    <div className="p-4">
+      {successMessage && <p className="text-green-500">{successMessage}</p>}
+      <div className="mb-4">
+        <h2 className="text-lg font-semibold">Tag Suggestions</h2>
+        <div className="flex flex-wrap justify-center gap-2">
+          {topTenTagsNames.map((tag) => (
+            <button
+              key={tag.id}
+              onClick={() => addSearchedTagToFinal(tag)}
+              className="bg-blue-500 text-white px-3 py-1 rounded-md"
+            >
+              {tag.name}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <br></br>
-      <hr/>
-      <br></br>
+      <hr className="my-4" />
 
-      <h2>Choose New Tags</h2>
-      <div>
-        <input
-          type="text"
-          placeholder="Search for tags"
-          value={searchInput}
-          onChange={handleSearchInputChange}
-        />
-        <button onClick={searchTags}>Search</button>
+      <div className="mb-4">
+        <h2 className="text-lg font-semibold">Choose New Tags</h2>
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            placeholder="Search for tags"
+            value={searchInput}
+            onChange={handleSearchInputChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"
+          />
+          <button onClick={searchTags} className="bg-blue-500 text-white px-4 py-2 rounded-md">Search</button>
+        </div>
+        {isLoading && <div>Loading...</div>}
+        {errorMessage && <div className="text-red-500">{errorMessage}</div>}
+        <div className="flex flex-wrap justify-center mt-2 gap-2">
+          {searchResults && searchResults.map((tag) => (
+            <button
+              key={tag.id}
+              onClick={() => addSearchedTagToFinal(tag)}
+              className="bg-gray-200 text-gray-700 px-3 py-1 rounded-md"
+            >
+              {tag.name}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center justify-center gap-2 mt-4">
+          <input
+            type="text"
+            placeholder="Enter new tag"
+            value={newTagInput}
+            onChange={handleNewTagInputChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"
+          />
+          <button onClick={createTag} className="bg-blue-500 text-white px-4 py-2 rounded-md">Create</button>
+        </div>
       </div>
 
-      {isLoading && <div>Loading...</div>}
-      {errorMessage && <div>{errorMessage}</div>}
+      <hr className="my-4" />
 
-      <div>
-        {searchResults && searchResults.map((tag) => (
-          <button key={tag.id} onClick={() => addSearchedTagToFinal(tag)}>
-            {tag.name}
-          </button>
-        ))}
+      <div className="mb-4">
+        <h2 className="text-lg font-semibold">Final Tags</h2>
+        <div className="flex flex-wrap justify-center gap-2">
+          {finalTags.map((tag) => (
+            <button
+              key={tag.id}
+              onClick={() => removeFinalTag(tag.name)}
+              className="bg-gray-200 text-gray-700 px-3 py-1 rounded-md"
+            >
+              {tag.name}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div>
-        <input
-          type="text"
-          placeholder="Enter new tag"
-          value={newTagInput}
-          onChange={handleNewTagInputChange}
-        />
-        <button onClick={createTag}>Create</button>
-      </div>
-
-      {/* Render finalTags */}
-      <br></br>
-      <hr />
-      <br></br>
-      <div>
-        <h2>Final Tags</h2>
-        {finalTags.map((tag) => (
-          <button
-            key={tag.id}
-            onClick={() => removeFinalTag(tag.name)}
-          >
-            {tag.name}
-          </button>
-        ))}
-      </div>
-
-
-      {/* Update hashtags */}
-      <button onClick={updateUserHashTags}>Update Hashtags</button>
-
+      <button onClick={updateUserHashTags} className="bg-blue-500 text-white px-4 py-2 rounded-md">Update Hashtags</button>
     </div>
   );
+
 };
 
 export default ChangeTag;

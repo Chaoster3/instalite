@@ -66,6 +66,14 @@ exports.updateUserHashTags = async (req, res) => {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({ error: 'User does not exist.' });
     }
 
+    // Decrement the counts in the hashtag table
+    const interest_ids = user[0].interests.split(',');
+    for (let i = 0; i < interest_ids.length; i++) {
+      await db.send_sql(
+        `UPDATE hashtags SET count = count - 1 WHERE hashtag_id = '${interest_ids[i]}'`
+      );
+    }
+
     // Change the hastag_names into hashtag_ids
     const hashtag_ids = [];
     for (let i = 0; i < hashtag_names.length; i++) {
@@ -78,10 +86,15 @@ exports.updateUserHashTags = async (req, res) => {
       hashtag_ids.push(tag[0].hashtag_id);
     }
 
-    console.log(hashtag_ids)
 
     const sql = `UPDATE users SET interests = '${hashtag_ids}' WHERE user_id = '${user_id}'`;
-    console.log(sql)
+
+    // Update the counts in the hashtag table
+    for (let i = 0; i < hashtag_ids.length; i++) {
+      await db.send_sql(
+        `UPDATE hashtags SET count = count + 1 WHERE hashtag_id = '${hashtag_ids[i]}'`
+      );
+    }
 
     // Update the user's hashtags
     await db.send_sql(
@@ -96,7 +109,7 @@ exports.updateUserHashTags = async (req, res) => {
 
 exports.searchHashTags = async (req, res) => {
   const { q } = req.params;
-  
+
   try {
     const tags = await db.send_sql(
       `SELECT name FROM hashtags WHERE name LIKE '%${q}%'`

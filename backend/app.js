@@ -5,9 +5,13 @@ const commentsRouter = require('./routes/commentsRoutes');
 const tagsRouter = require('./routes/tagsRoutes');
 
 const cors = require('cors');
+
+const chroma = require('./basic-face-match-main/app.js');
+const path = require('path');
 const app = express();
 const session = require('express-session');
 const signature = require('cookie-signature')
+const kafka = require('./kafka.js')
 
 app.use(express.json());
 app.use(cors({ credentials: true, origin: true }));
@@ -26,11 +30,27 @@ const sessionMiddleWear = session({
 
 app.use(sessionMiddleWear);
 
-
 //cookie fixing middleware
+app.use((req, res, next) => 
+  req.collection = collection;
+  next();
+});
+
+const sessionMiddleWear = session({
+  secret: 'nets2120_insecure',
+  saveUninitialized: true,
+  cookie: {
+    httpOnly: false,
+    sameSite: "none",
+    secure: false
+  },
+  resave: true
+})
+
+app.use(sessionMiddleWear);
+
 app.use((req, res, next) => {
   const myNext = () => {
-    //print out cookies in res
     var name = 'connect.sid'
     const secret = 'nets2120_insecure'
     var signed = 's:' + signature.sign(req.sessionID, secret)
@@ -45,6 +65,10 @@ app.use((req, res, next) => {
   }
   sessionMiddleWear(req, res, myNext);
 })
+
+app.use(express.json());
+app.use('/images', express.static(path.join(__dirname, '/images')));
+app.use(cors({ credentials: true, origin: true }));
 
 
 app.use('/users', userRouter);

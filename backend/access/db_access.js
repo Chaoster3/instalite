@@ -72,7 +72,7 @@ async function get_db_connection() {
 async function send_sql(sql, params = []) {
   const dbo = await get_db_connection();
   return new Promise((resolve, reject) => {
-    dbo.query(sql, (error, results) => {
+    dbo.query(sql, params, (error, results) => {
       if (error) {
         return reject(error);
       }

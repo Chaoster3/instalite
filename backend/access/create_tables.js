@@ -65,14 +65,16 @@ async function create_tables(db) {
       username VARCHAR(255) NOT NULL UNIQUE, \
       hashed_password VARCHAR(255) NOT NULL, \
       linked_nconst VARCHAR(10), \
-      image_id VARCHAR(255), \
+      image_link VARCHAR(255), \
       first_name VARCHAR(255), \
       last_name VARCHAR(255), \
       email VARCHAR(255), \
       affiliation VARCHAR(255), \
       birthday DATE, \
-      interests VARCHAR(255), \
+      interests JSON, \
       logged_in BOOLEAN DEFAULT FALSE, \
+      rank_distribution JSON, \
+      friend_recommendation JSON, \
       PRIMARY KEY(user_id), \
       FOREIGN KEY(linked_nconst) REFERENCES names(nconst) \
     );'
@@ -117,13 +119,14 @@ async function create_tables(db) {
       post_id INT NOT NULL AUTO_INCREMENT, \
       author_id INT, \
       content VARCHAR(255), \
-      image VARCHAR(255), \
+      hashtag_ids VARCHAR(255), \
+      user_ids_who_liked VARCHAR(255), \
+      foreign_username VARCHAR(255), \
       PRIMARY KEY(post_id), \
       FOREIGN KEY(author_id) REFERENCES users(user_id) \
     );'
   );
 
-  //      hashtag_ids INT, \
 
   // Comments table
   var q5 = db.create_tables(
@@ -132,12 +135,11 @@ async function create_tables(db) {
       post_id INT, \
       author_id INT, \
       content VARCHAR(255), \
-      hashtag_ids INT, \
+      hashtag_ids JSON, \
       timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP, \
       PRIMARY KEY(comment_id), \
       FOREIGN KEY(post_id) REFERENCES posts(post_id), \
-      FOREIGN KEY(author_id) REFERENCES users(user_id), \
-      FOREIGN KEY(hashtag_ids) REFERENCES hashtags(hashtag_id) \
+      FOREIGN KEY(author_id) REFERENCES users(user_id) \
     );'
   );
 
@@ -152,7 +154,7 @@ async function create_tables(db) {
   );
 
   // chat session table
-  var q7 = db.create_tables(
+  var q8 = db.create_tables(
     `CREATE TABLE IF NOT EXISTS chat_sessions (
       session_id INT AUTO_INCREMENT PRIMARY KEY,
       session_name VARCHAR(255) DEFAULT 'Unnamed Session'
@@ -160,7 +162,7 @@ async function create_tables(db) {
   );
 
   // messages table
-  var q8 = db.create_tables(
+  var q9 = db.create_tables(
     `CREATE TABLE IF NOT EXISTS chat_messages (
       message_id INT AUTO_INCREMENT PRIMARY KEY,
       session_id INT,
@@ -173,7 +175,7 @@ async function create_tables(db) {
   );
 
   // session membership table
-  var q9 = db.create_tables(
+  var q10 = db.create_tables(
     `CREATE TABLE IF NOT EXISTS session_memberships (
       session_id INT,
       user_id INT,
@@ -184,8 +186,16 @@ async function create_tables(db) {
     );`
   );
 
-
-  return await Promise.all([q0, q1, q2, q3, q4, q5, q6]);
+  // Password reset table
+  var q7 = db.create_tables(
+    'CREATE TABLE IF NOT EXISTS password_reset ( \
+      user_id INT, \
+      token VARCHAR(255), \
+      FOREIGN KEY (user_id) REFERENCES users(user_id) \
+    );'
+  );
+  
+  return await Promise.all([q0, q1, q2, q3, q4, q5, q6, q7, q8, q9, q10]);
 }
 
 // Database connection setup

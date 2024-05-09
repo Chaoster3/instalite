@@ -2,18 +2,21 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { BACKEND_URL } from "./utils/constants";
 import { useNavigate } from 'react-router-dom';
+import Post from "./Post";
 
+axios.defaults.withCredentials = true
 
 const Home = () => {
   // Display the current logged in user's name
   const [user, setUser] = useState("");
   const [posts, setPosts] = useState([]);
+  
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const response = await axios.get(`${BACKEND_URL}/users/checkIfLoggedIn`);
+        const response = await axios.get(`${BACKEND_URL}/users/checkIfLoggedIn`, { withCredentials: true });
         if (response.status === 200) {
           setUser(response.data.data);
         } else {
@@ -52,19 +55,17 @@ const Home = () => {
   }, []);
 
   return (
-    <div>
+    <div className="bg-grey-200">
       <h1>Welcome, {user}!</h1>
-      <h2>Posts</h2>
       <ul>
+        {/* Render posts */}
         {posts.map((post, index) => (
-          <div key={index} className="border rounded-md p-2 mb-2">
-            <li>author: {post.username}</li>
-            <li>content: {post.content}</li>
-          </div>
+          <Post key={index} post={post} />
         ))}
       </ul>
     </div>
   );
+
 }
 
 export default Home

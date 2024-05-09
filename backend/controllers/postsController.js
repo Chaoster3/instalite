@@ -1,4 +1,5 @@
 const dbsingleton = require('../access/db_access');
+const userController = require('./userController');
 const HTTP_STATUS = require('../utils/httpStatus');
 const kafka = require('../kafka');
 const process = require('process');
@@ -13,7 +14,6 @@ const s3 = new aws.S3({
 
 exports.createPost = async (req, res) => {
   const { content, hashtag_names } = req.body;
-
   // Check if user is logged in
   if (req.session.user_id == null) {
     return res
@@ -30,19 +30,12 @@ exports.createPost = async (req, res) => {
 
   try {
     // Convert hashtag names into hashtag ids
-    const hashtag_ids = [];
-    for (let i = 0; i < hashtag_names.length; i++) {
-      const hashtag = await db.send_sql(
-        `SELECT * FROM hashtags WHERE name = '${hashtag_names[i]}'`
-      );
-      if (hashtag.length === 0) {
-        return res
-          .status(HTTP_STATUS.BAD_REQUEST)
-          .json({ error: `Hashtag ${hashtag_names[i]} does not exist.` });
-      }
-      hashtag_ids.push(hashtag[0].hashtag_id);
+    let hashtag_ids = [];
+    if (hashtag_names) {
+      const h_names = hashtag_names.split(",");
+      hashtag_ids = h_names.map(name => userController.getTagId(name));
+      console.log(hashtag_ids);
     }
-
     const file = req.file;
     if (file != null) {
       const count = await db.send_sql(

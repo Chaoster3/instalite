@@ -18,7 +18,7 @@ exports.getTagId = async function (tag_name) {
     return result[0].hashtag_id;
   } else {
     await db.send_sql(
-      `INSERT INTO hashtags (name, count) VALUES (?, 1)`);
+      `INSERT INTO hashtags (name, count) VALUES (?, 1)`, [tag_name]);
     const num = await db.send_sql(
       `SELECT hashtag_id FROM hashtags WHERE name = ?`, [tag_name]
     );  

@@ -10,6 +10,22 @@ const e = require('express');
 
 const db = dbsingleton;
 
+exports.getTagId = async function (tag_name) {
+  const result = await db.send_sql(
+    `SELECT hashtag_id FROM hashtags WHERE name = ?`, [tag_name]
+  ); 
+  if (result.length > 0) {
+    return result[0].hashtag_id;
+  } else {
+    await db.send_sql(
+      `INSERT INTO hashtags (name, count) VALUES (?, 1)`);
+    const num = await db.send_sql(
+      `SELECT hashtag_id FROM hashtags WHERE name = ?`, [tag_name]
+    );  
+    return num[0].hashtag_id;
+  }
+}
+
 exports.register = async function (req, res) {
     console.log(req.body);
     const {
@@ -63,9 +79,10 @@ exports.register = async function (req, res) {
                 }
             });
         });
+        const hashtag_ids = interests.map(interest => getTagId(interest));
         await db.send_sql(
             `INSERT INTO users (username, hashed_password, first_name, last_name, email, affiliation, birthday, image_link, linked_nconst, interests, nconst_options) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [username,hashed, firstName, lastName, email, affiliation, birthday, image_link, linked_nconst, JSON.stringify(interests), JSON.stringify(nconst_options)]
+            [username,hashed, firstName, lastName, email, affiliation, birthday, image_link, linked_nconst, JSON.stringify(hashtag_ids), JSON.stringify(nconst_options)]
         );
         const found = await db.send_sql(
             `SELECT user_id FROM users WHERE username = '${username}'`

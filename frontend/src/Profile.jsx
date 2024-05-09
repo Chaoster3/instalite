@@ -122,10 +122,10 @@ export function Profile() {
             </div>
             <div className="text-2xl"> <strong>Username:</strong>{currentUser.username}</div>
             <div className="text-2xl"> <strong>Email:</strong> {currentUser.email}</div>
-            <div className="text-2xl"> <strong>Birthday:</strong> {currentUser.birthday}</div>
+            <div className="text-2xl"> <strong>Affiliation:</strong> {currentUser.affiliation}</div>
 
             {/* Show the interests */}
-            <div className="text-2xl"> <strong>Interests:</strong> {currentUserInterestNames.join(", ")}</div>
+            <div className="text-2xl mb-3"> <strong>Interests:</strong> {currentUserInterestNames.join(", ")}</div>
           </div>
         </div>
       </Card>

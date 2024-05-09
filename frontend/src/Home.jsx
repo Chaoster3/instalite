@@ -10,9 +10,10 @@ const Home = () => {
   // Display the current logged in user's name
   const [user, setUser] = useState("");
   const [posts, setPosts] = useState([]);
-  
+
   const navigate = useNavigate();
 
+  // Check to see if the user is logged in
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -55,16 +56,19 @@ const Home = () => {
   }, []);
 
   return (
-    <div className="bg-grey-200">
-      <h1>Welcome, {user}!</h1>
-      <ul>
-        {/* Render posts */}
-        {posts.map((post, index) => (
-          <Post key={index} post={post} />
-        ))}
-      </ul>
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-3xl font-bold mb-6">Welcome, {user}!</h1>
+      <div className="overflow-y-scroll max-h-screen">
+        <div className="grid grid-cols-1 gap-6">
+          {/* Render posts */}
+          {posts.map((post, index) => (
+            <Post key={index} post={post} />
+          ))}
+        </div>
+      </div>
     </div>
   );
+
 
 }
 

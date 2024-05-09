@@ -30,13 +30,16 @@ export function Profile() {
           // Change the interest ids into hashtag names
           const currentUserInterestIds = response.data.response[0].interests;
           const interestNames = []
-          const interestsArray = JSON.parse(currentUserInterestIds);
-          for (const id of interestsArray) {
-            const response = await axios.get(`${BACKEND_URL}/tags/getTagNameFromID/${id}`)
-            interestNames.push(response.data.name)
+          if (currentUserInterestIds) {
+            const interestsArray = JSON.parse(currentUserInterestIds);
+            for (const id of interestsArray) {
+              const response = await axios.get(`${BACKEND_URL}/tags/getTagNameFromID/${id}`)
+              interestNames.push(response.data.name)
+            }
+            SetCurrentUserInterestNames(interestNames)
+          } else {
+            SetCurrentUserInterestNames([]);
           }
-
-          SetCurrentUserInterestNames(interestNames)
         } else {
           console.error("Error fetching username");
           setCurrentUser({});

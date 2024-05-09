@@ -5,7 +5,6 @@ const commentsRouter = require('./routes/commentsRoutes');
 const tagsRouter = require('./routes/tagsRoutes');
 
 const cors = require('cors');
-const chroma = require('./basic-face-match-main/app.js');
 const path = require('path');
 const app = express();
 const session = require('express-session');

@@ -2,6 +2,7 @@ const dbsingleton = require('../access/db_access');
 const userController = require('./userController');
 const HTTP_STATUS = require('../utils/httpStatus');
 const kafka = require('../kafka');
+const rag = require('../rag');
 const process = require('process');
 const aws = require('aws-sdk'); 
 const fs = require('fs');
@@ -132,5 +133,28 @@ exports.getAllPosts = async (req, res) => {
     return res
       .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
       .json({ error: 'Error querying database.' });
+  }
+}
+
+exports.getSearch = async (req, res) => {
+  const { user_id } = req.session;
+  const { query } = req.params;
+
+  if (user_id == null) {
+    return res
+      .status(HTTP_STATUS.UNAUTHORIZED)
+      .json({ error: 'You must be logged in to make a search.' });
+  }
+
+  try {
+    const response = await rag.rag(query);
+    return res
+      .status(HTTP_STATUS.SUCCESS)
+      .json({ response });
+  } catch (err) {
+    console.log(err);
+    return res
+      .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+      .json({ error: 'Error making search.' });
   }
 }

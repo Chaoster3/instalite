@@ -3,13 +3,15 @@ import io from 'socket.io-client'
 import { Avatar, Card, List, ListItem, ListItemSuffix } from "@material-tailwind/react"
 import { PencilSquareIcon } from "@heroicons/react/24/solid"
 import CreateNewChat from './CreateNewChat' 
+import AddNewUser from './AddNewUser' 
+
 import axios from 'axios';
 import { BACKEND_URL } from "./utils/constants";
+import { PlusIcon } from "@heroicons/react/24/solid";
 
 
 
 const messageComponent = ({ sender, message, avatar, username }) => {
-    console.log(`USERNAME IS ${username} and sender is ${sender} wiht message`)
     return (
         <div
             className={`w-full p-5 flex flex-row ${sender === username && "justify-end"
@@ -33,12 +35,17 @@ const Chat = () => {
     const [chatName, setChatName] = useState("");
     const [editing, setEditing] = useState(false);
     const [showCreateNewChat, setShowCreateNewChat] = useState(false);
+    const [showCreateNewUser, setShowCreateNewUser] = useState(false);
+
     const [user_id, setUser] = useState("");
     const [username, setUsername] = useState("");
 
     const [socket, setSocket] = useState(null);
 
     const messagesRef = useRef(messages);
+
+    const chatsRef = useRef(chats);
+
 
     useEffect(() => {
         messagesRef.current = messages;
@@ -52,6 +59,14 @@ const Chat = () => {
 
     const handleCloseNewChat = () => {
         setShowCreateNewChat(false); // Close the popup
+    };
+
+    const handleCreateAddUser = () => {
+        setShowCreateNewUser(true); // Open the popup
+    };
+
+    const handleCloseAddUser = () => {
+        setShowCreateNewUser(false); // Close the popup
     };
 
 
@@ -74,12 +89,9 @@ const Chat = () => {
     };
 
     useEffect(() => {
-        console.log(`The user_id has changed to: ${user_id}`);
-    }, [user_id]);
-
-    useEffect(() => {
-        console.log(`The username has changed to: ${username}`);
-    }, [username]);
+        chatsRef.current = chats;
+        console.log(`chats has changed to: ${chats.length}`);
+    }, [chats]);
 
     useEffect(() => {
         console.log(`Messages changed to: ${messages.chatID}`);
@@ -96,7 +108,7 @@ const Chat = () => {
 
                 console.log(response.data.data);
                 const newSocket = io('http://localhost:3005', {
-                    query: { userId: response.data.data }
+                    query: { userId: response.data.data },
                 });
                 setSocket(newSocket);
                 setupSocketListeners(newSocket);
@@ -128,11 +140,11 @@ const Chat = () => {
       }, []);
 
     const setupSocketListeners = (socket) => {
-        socket.on('receiveInvite', ({ sessionId, inviterId, usrId }) => {
-            const accept = window.confirm(`Accept invitation to join?`);
+        socket.on('receiveInvite', ({ sessionId, inviterId, usrId, chat_name }) => {
+            const accept = window.confirm(`Accept invitation to join ${chat_name} by ${usrId}?`);
             console.log(`Invitation response by ${usrId} : ${accept} and here is sess_id: ${sessionId} and inviter id is ${inviterId}`);
 
-            socket.emit('respondToInvite', { sessionId: sessionId, userId: usrId, accept: accept });
+            socket.emit('respondToInvite', { sessionId: sessionId, userId: usrId, chat_name: chat_name, accept: accept });
         });
 
         socket.on('chatRenamed', ({ chatID, newName }) => {
@@ -179,21 +191,40 @@ const Chat = () => {
             setChats(currentChats => [
                 ...currentChats,
                 {
-                    name: chatInfo.chatName || "New Chat",
+                    name: chatInfo.chat_name || "New Chat",
                     chatID: chatInfo.chatID,
                     users: chatInfo.users,
                     messages: chatInfo.messages || [] 
                 }
             ]);
-            setMessages({ messages: chatInfo.messages || [], chatID: chatInfo.chatID });
+        });
+
+        socket.on('userLeft', (data) => {
+            console.log("Current chats:", chatsRef.current);
+            console.log("Username of the user who left:", data.username);
+            const updatedChats = chatsRef.current.map(chat => {
+                if (chat.chatID === data.sessionId) {
+                    // Filter out the user who left the chat
+                    const updatedUsers = chat.users.filter(user => user.username !== data.username);
+                    return { ...chat, users: updatedUsers };
+                }
+                return chat;
+            });
+
+            setChats(updatedChats);
+            console.log(`Updated chats after user left:`, updatedChats);
+
         });
 
         socket.on('leftChat', (data) => {
             if (data.success) {
-                const updatedChats = chats.filter(chat => chat.chatID !== data.chatID);
+                //have to make chats use ref thing
+                console.log("leaving: CHATS", chatsRef.current);
+                console.log("leaving: chat id", data.chatID);
+                const updatedChats = chatsRef.current.filter(chat => chat.chatID !== data.chatID);
 
                 setChats(updatedChats);
-                console.log(`message id ${messages.chatID} ande here is the data id ${data.chatID}`);
+                console.log(`leaving: message id ${messagesRef.current.chatID} ande here is the data id ${data.chatID}`);
 
                 if (messagesRef.current.chatID === data.chatID) {
                     // Set messages to null or an empty object if the current chat is deleted
@@ -225,6 +256,14 @@ const Chat = () => {
             sendMessage(chatID);
         }
     };
+
+    const leaveChat = (chatID) => {
+        if (socket) {
+            console.log('Leaving chat:', chatID);
+            socket.emit('leaveChat', { sessionId: chatID, userId: user_id });
+        }
+    };
+
 
     // const createNewChat = () => {
     //     console.log("HIT Button");
@@ -286,11 +325,28 @@ const Chat = () => {
                         socket={socket}
                         userId={user_id}
                         onClose={handleCloseNewChat}
+                        chatId={-1}
+                    />
+                )}
+
+                {showCreateNewUser && (
+                    <AddNewUser
+                        socket={socket}
+                        userId={user_id}
+                        onClose={handleCloseAddUser}
+                        chatId={messages.chatID}
                     />
                 )}
 
                 {Object.entries(messages).length > 0 && (
+
                     <Card className="flex-auto flex flex-col">
+                        <button
+                            className="bg-red-500 text-white p-2"
+                            onClick={() => leaveChat(messages.chatID)}
+                        >
+                            Leave Chat
+                        </button>
                         <div className="chat-header">
                             {editing ? (
                                 <input
@@ -304,7 +360,15 @@ const Chat = () => {
                                 <h1 onClick={editName}>{chatName}</h1>
                             )}
                         </div>
-                        <div className="flex-auto flex flex-col">
+
+                        <div className="flex-auto flex flex-col overflow-y-auto max-h-96">
+                            <button
+                                onClick={handleCreateAddUser}
+                                className="p-2 bg-blue-500 text-white rounded-full"
+                                title="Add user to chat"
+                            >
+                                <PlusIcon className="h-1 w-1" />
+                            </button>
                             {messages.messages.map((msg, key) => (
                                 <div key={key}>
                                     {messageComponent({

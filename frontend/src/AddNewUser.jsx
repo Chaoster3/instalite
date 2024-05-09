@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const CreateNewChat = ({ socket, userId, onClose, chatId }) => {
+const AddNewUser = ({ socket, userId, onClose, chatId }) => {
     const [friendUsername, setFriendUsername] = useState("");
 
     const handleCreateChat = () => {
@@ -14,7 +14,7 @@ const CreateNewChat = ({ socket, userId, onClose, chatId }) => {
         socket.emit('sendInvite', {
             inviteeUsername: friendUsername,
             sessionId: chatId,
-            inviterId: userId
+            inviterId: userId,
         });
         setFriendUsername("");  // Reset input field
         onClose();
@@ -28,11 +28,11 @@ const CreateNewChat = ({ socket, userId, onClose, chatId }) => {
                 value={friendUsername}
                 onChange={(e) => setFriendUsername(e.target.value)}
             />
-            <button onClick={handleCreateChat}>Create</button>
+            <button onClick={handleCreateChat}>Add</button>
             <button onClick={onClose}>Cancel</button>
 
         </div>
     );
 };
 
-export default CreateNewChat;
+export default AddNewUser;

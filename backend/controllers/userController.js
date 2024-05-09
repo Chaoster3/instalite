@@ -235,6 +235,36 @@ const s3 = new aws.S3({
     region: process.env.S3_REGION
 });
 
+exports.getActor = async (req, res) => {
+    const { user_id } = req.session;
+
+    if (user_id == null) {
+        return res
+            .status(HTTP_STATUS.UNAUTHORIZED)
+            .json({ error: 'You must be logged in to view your actor.' });
+    }
+
+    try {
+        const actor_nconst = await db.send_sql(
+            `SELECT linked_nconst FROM users WHERE user_id = ${user_id}`
+        );
+
+        const actor = await db.send_sql(
+            `SELECT * FROM names WHERE nconst = '${actor_nconst[0].linked_nconst}'`
+        );
+
+        return res
+            .status(HTTP_STATUS.SUCCESS)
+            .json({ actor });
+    } catch (err) {
+        console.log(err);
+        return res
+            .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+            .json({ error: 'Error querying database.' });
+    }
+
+}
+
 // Note: Stores selfie in S3 and then returns 5 closest actors
 exports.getClosest = async (req, res) => {
     console.log(req.body);

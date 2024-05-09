@@ -272,6 +272,14 @@ exports.checkIfLoggedIn = async (req, res) => {
   }
 }
 
+// Checks if the user is signed in
+exports.getUserId = async (req, res) => {
+  if (req.session && req.session.user_id) {
+    return res.status(HTTP_STATUS.SUCCESS).json({ data: req.session.user_id });
+  } else {
+    return res.status(HTTP_STATUS.UNAUTHORIZED).json({ data: false });
+
+    
 exports.getResetLink = async (req, res) => {
   const username = req.query.username;
   console.log(username);

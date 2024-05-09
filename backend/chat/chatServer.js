@@ -6,7 +6,7 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
     cors: {
-        origin: ["http://127.0.0.1:5173", "http://127.0.0.1:5174", "http://localhost:5173", "http://localhost:5174"],
+        origin: ["http://3.90.82.97:5173", "http://3.90.82.97:5174"],
         methods: ["GET", "POST"],
         credentials: true
     }
@@ -39,7 +39,7 @@ io.on('connection', socket => {
             const socketToControl = io.sockets.sockets.get(userSocketId);
             console.log("joining room");
             socketToControl.join(sessionId);
-            handleJoinRoom(socketToControl, sessionId, userId);
+            handleJoinRoom(socketToControl, sessionId, userId, "New Room");
             console.log(`User ${userId} added to room ${sessionId} with socket ${userSocketId}`);
         }
 
@@ -74,9 +74,10 @@ io.on('connection', socket => {
 
     socket.on('chatMessage', async ({ chatID, userId, message }) => {
         const avatar = await chatController.saveMessageAndGetAvatar(chatID, userId, message);
+        const username = await chatController.getUsername(userId);
         const newMessage = {
             chatID,
-            senderId: userId,
+            sender: username,
             message,
             timestamp: new Date(),
             avatar: avatar 
@@ -84,35 +85,35 @@ io.on('connection', socket => {
         io.to(chatID).emit('newMessage', newMessage);
     });
 
-    // socket.on('disconnecting', async () => {
-    //     await chatController.handleDisconnect(req.session.user_id);
-    //     userSockets.forEach((value, key) => {
-    //         if (value === socket.id) {
-    //             userSockets.delete(key);
-    //             console.log(`User ${key} disconnected and removed from the map`);
-    //         }
-    //     });
-    // });
+    socket.on('disconnect', () => {
+        console.log(`User disconnected: ${socket.id}`);
+        if (userSockets.has(userId)) {
+            userSockets.delete(userId);
+        }
+    });
 
 
     socket.on('leaveChat', async ({ sessionId, userId }) => {
         try {
             await chatController.leaveRoom(userId, sessionId);
-            socket.leave(sessionId, async () => {
-                console.log(`User ${userId} has left room ${sessionId}`);
-                socket.to(sessionId).emit('userLeft', { userId, sessionId });
-                // Notify the leaving user as well
-                socket.emit('leftChat', { chatID: sessionId, success: true });
 
-                // Check if the session has no more active members
-                const activeMembers = await chatController.checkSessionMembers(sessionId);
-                if (activeMembers.length === 1) {
-                    await chatController.deleteSession(sessionId);
-                    // Broadcast to everyone in the session that it's being deleted
-                    io.to(sessionId).emit('leftChat', { chatID: sessionId, success: true });
-                    console.log(`Chat session ${sessionId} deleted due to no active members.`);
-                }
-            });
+            socket.leave(sessionId);
+
+            const username = await chatController.getUsernameById(userId);
+            console.log(`User ${userId} has left room ${sessionId}`);
+            socket.to(sessionId).emit('userLeft', { username, sessionId });
+            // Notify the leaving user as well
+            socket.emit('leftChat', { chatID: sessionId, success: true });
+
+            // Check if the session has no more active members
+            const activeMembers = await chatController.checkSessionMembers(sessionId);
+            if (activeMembers.length === 1) {
+                await chatController.deleteSession(sessionId);
+                // Broadcast to everyone in the session that it's being deleted
+                io.to(sessionId).emit('leftChat', { chatID: sessionId, success: true });
+                console.log(`Chat session ${sessionId} deleted due to no active members.`);
+            }
+
         } catch (error) {
             console.error('Error leaving chat:', error);
             socket.emit('leftChat', { chatID: sessionId, success: false, error: error.message });
@@ -129,7 +130,7 @@ io.on('connection', socket => {
         }
         const areFriends = await chatController.checkFriendship(inviterId, inviteeId);
 
-        console.log("INVITEE ID is", inviteeId);
+        console.log("INVITEE ID is and session is", inviteeId, ogSession);
 
         if (areFriends) {
 
@@ -144,14 +145,21 @@ io.on('connection', socket => {
                 }
                 await chatController.addUserToSession(inviteeId, sessionId, false); // Add with inactive flag
 
+                let chat_name = null;
+
+                if (ogSession != -1) {
+                    chat_name = await chatController.getNameFromSessionId(sessionId);
+                }
+
                 io.to(inviteeSocketId).emit('receiveInvite', {
                     sessionId: sessionId,
                     inviterId: inviterId,
-                    usrId: inviteeId
+                    usrId: inviteeId,
+                    chat_name: chat_name
                 });
                 if (ogSession == -1) {
                     console.log("CREATING CHAT");
-                    handleJoinRoom(socket, sessionId, userId);
+                    handleJoinRoom(socket, sessionId, userId, "New Room");
                 }
             } else {
                 console.log("Did not sent invite. Invitee not online");
@@ -162,12 +170,12 @@ io.on('connection', socket => {
     });
 
     // Event to handle response to invitations
-    socket.on('respondToInvite', async ({ sessionId, userId, accept }) => {
+    socket.on('respondToInvite', async ({ sessionId, userId, chat_name, accept }) => {
         console.log(`HERE we have ${userId} and response ${accept}`)
         if (accept) {
             await chatController.activateUserInSession(userId, sessionId);
             socket.join(sessionId);
-            handleJoinRoom(socket, sessionId, userId);
+            handleJoinRoom(socket, sessionId, userId, chat_name);
         } else {
             console.log(`In refect`);
             await chatController.leaveRoom(userId, sessionId);
@@ -201,7 +209,7 @@ io.on('connection', socket => {
 
 });
 
-async function handleJoinRoom(socket, sessionId, userId) {
+async function handleJoinRoom(socket, sessionId, userId, chat_name) {
     socket.join(sessionId);
     console.log(`User ${userId} joined room ${sessionId}`);
     const messages = await chatController.fetchMessagesForSession(sessionId);
@@ -210,12 +218,13 @@ async function handleJoinRoom(socket, sessionId, userId) {
     socket.emit('chatLoaded', {
         chatID: sessionId,
         users,
-        messages
+        messages,
+        chat_name
     });
 }
 
 server.listen(3005, () => {
-    console.log('Server is running on http://localhost:3005');
+    console.log('Server is running on http://3.90.82.97:3005');
 }).on('error', err => {
     console.error('Server failed to start:', err);
 });

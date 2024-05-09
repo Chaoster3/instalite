@@ -161,6 +161,16 @@ exports.getUserIdByUsername = async (username) => {
     }
 };
 
+exports.getUsernameById = async (user_id) => {
+    const sql = `SELECT username FROM users WHERE user_id = '${user_id}'`;
+    const result = await db.send_sql(sql);
+    if (result.length > 0) {
+        return result[0].username;
+    } else {
+        return null;
+    }
+};
+
 exports.checkFriendship = async (userId1, userId2) => {
     const sql = `SELECT EXISTS (SELECT 1 FROM friends WHERE follower = ${userId1} AND followed = ${userId2})`;
     const result = await db.send_sql(sql);
@@ -168,4 +178,33 @@ exports.checkFriendship = async (userId1, userId2) => {
 
     console.log("GETTING FRIENDSHIP", result[0][`EXISTS (SELECT 1 FROM friends WHERE follower = ${userId1} AND followed = ${userId2})`] === 1);
     return result[0][`EXISTS (SELECT 1 FROM friends WHERE follower = ${userId1} AND followed = ${userId2})`] === 1;
+};
+
+exports.getUsername = async (userId) => {
+    const sql = 'SELECT username FROM users WHERE user_id = ' + userId;
+    try {
+        const results = await db.send_sql(sql);
+        if (results.length > 0) {
+            return results[0].username;
+        } else {
+            return null;
+        }
+    } catch (error) {
+        console.error('Failed to fetch username:', error);
+        throw error;
+    }
+};
+
+exports.getNameFromSessionId = async (sessionId) => {
+    try {
+        const sql = `SELECT session_name FROM chat_sessions WHERE session_id = ${sessionId}`;
+        const results = await db.send_sql(sql);
+        if (results.length > 0) {
+            return results[0].session_name;
+        }
+        return null; // Return null if no session is found
+    } catch (error) {
+        console.error('Failed to fetch session name:', error);
+        throw error;
+    }
 };

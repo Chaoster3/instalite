@@ -84,36 +84,35 @@ const Post = ({ post }) => {
   }, []);
 
   return (
-    <div className="border rounded-md p-4 mb-4">
+    <div className="border rounded-md p-4 mb-4 shadow-md">
       <div>
-        <h2 className="text-lg font-bold mb-1">Post</h2>
-        <p className="mb-2">Author: {post.username}</p>
-        <p className="mb-2">Content: <span dangerouslySetInnerHTML={{ __html: post.content }} /></p>
+        <h2 className="text-xl font-semibold mb-2">Post</h2>
+        <p className="text-gray-600 mb-2">Author: {post.username}</p>
+        <p className="mb-4">Content: <span className="whitespace-pre-line">{post.content}</span></p>
         {post.hashtag_names.length > 0 && (
-          <p className="mb-2">Hashtags: {post.hashtag_names.join(', ')}</p>
+          <p className="text-gray-600 mb-2">Hashtags: {post.hashtag_names.join(', ')}</p>
         )}
-        <button className="text-blue-500" onClick={() => likedPost ? handleUnlikePost(post.post_id) : handleLikePost(post.post_id)}>
+        <button className={`text-sm font-semibold py-1 px-3 -lg ${likedPost ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'}`} onClick={() => likedPost ? handleUnlikePost(post.post_id) : handleLikePost(post.post_id)}>
           {likedPost ? 'Unlike' : 'Like'}
         </button>
-      </div>
-      <hr className="my-4" />
+      </div>rounded
+      <hr className="my-6" />
       <div>
-        <h2 className="text-lg font-bold mb-1">Comments</h2>
+        <h2 className="text-xl font-semibold mb-2">Comments</h2>
         <ul>
           {existingComments.map((comment, index) => (
-            <li key={index} className="mb-4">
-              <p className="mb-1">Content: {comment.content}</p>
-              <p className="mb-1">Author: {comment.author}</p>
+            <li key={index} className="border rounded-md p-3 mb-4"> {/* Added border and rounded corners */}
+              <p className="text-gray-600 mb-2">Content: {comment.content}</p>
+              <p className="text-gray-600 mb-2">Author: {comment.author}</p>
               {comment.hashtag_ids && (
-                <p className="mb-1">Hashtags: {comment.hashtag_ids.join(', ')}</p>
+                <p className="text-gray-600 mb-2">Hashtags: {comment.hashtag_ids.join(', ')}</p>
               )}
-              <p className="text-gray-500">Timestamp: {comment.timestamp}</p>
+              <p className="text-gray-600">Timestamp: {comment.timestamp}</p>
             </li>
           ))}
         </ul>
-        <hr className="my-4" />
-        <div>
-          <h2 className="text-lg font-bold mb-1">Post a Comment</h2>
+        <div className="border rounded-md p-3 mb-4">
+          <h2 className="text-xl font-semibold mb-2">Post a Comment</h2>
           <input
             type="text"
             value={commentText}
@@ -131,6 +130,7 @@ const Post = ({ post }) => {
       </div>
     </div>
   );
+
 };
 
 export default Post;

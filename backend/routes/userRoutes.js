@@ -21,6 +21,7 @@ router.route('/getUserId').get(authController.getUserId); // returns true if the
 // User routes
 
 router.route('/getClosest').post(upload.single('profile_pic'), userController.getClosest);
+router.route('/getActor').get(userController.getActor);
 router.route('/changeActor').put(userController.changeActor); // need to verify that it works
 
 // get all the current user's friends
@@ -47,6 +48,7 @@ router.route('/checkIfLikedPost/:postId').get(userController.checkIfLikedPost);
 // Friend recommendation
 router.route('/getFriendRecommendation').get(userController.getFriendRecommendation);
 router.route('/getFriendRequests').get(userController.getFriendRequests);
+router.route('/getCurrentUser').get(userController.getCurrentUser);
 
 
 

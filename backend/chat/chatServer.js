@@ -6,7 +6,7 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
     cors: {
-        origin: ["http://127.0.0.1:5173", "http://127.0.0.1:5174", "http://localhost:5173", "http://localhost:5174"],
+        origin: ["http://3.90.82.97:5173", "http://3.90.82.97:5174"],
         methods: ["GET", "POST"],
         credentials: true
     }
@@ -224,7 +224,7 @@ async function handleJoinRoom(socket, sessionId, userId, chat_name) {
 }
 
 server.listen(3005, () => {
-    console.log('Server is running on http://localhost:3005');
+    console.log('Server is running on http://3.90.82.97:3005');
 }).on('error', err => {
     console.error('Server failed to start:', err);
 });

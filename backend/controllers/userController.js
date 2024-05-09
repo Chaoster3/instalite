@@ -10,6 +10,22 @@ const e = require('express');
 
 const db = dbsingleton;
 
+exports.getTagId = async function (tag_name) {
+  const result = await db.send_sql(
+    `SELECT hashtag_id FROM hashtags WHERE name = ?`, [tag_name]
+  ); 
+  if (result.length > 0) {
+    return result[0].hashtag_id;
+  } else {
+    await db.send_sql(
+      `INSERT INTO hashtags (name, count) VALUES (?, 1)`, [tag_name]);
+    const num = await db.send_sql(
+      `SELECT hashtag_id FROM hashtags WHERE name = ?`, [tag_name]
+    );  
+    return num[0].hashtag_id;
+  }
+}
+
 exports.register = async function (req, res) {
     console.log(req.body);
     const {
@@ -38,6 +54,7 @@ exports.register = async function (req, res) {
       interests == null ||
       nconst_options == null
     ) {
+        console.log(username, password, firstName, lastName, email, affiliation, birthday, image_link, linked_nconst, interests, nconst_options);
         return res.status(400).json({
             error:
                 'One or more of the fields you entered was empty, please try again.',
@@ -62,9 +79,10 @@ exports.register = async function (req, res) {
                 }
             });
         });
+        const hashtag_ids = interests.map(interest => exports.getTagId(interest));
         await db.send_sql(
-            `INSERT INTO users (username, hashed_password, first_name, last_name, email, affiliation, birthday, image_link, linked_nconst, interests, nconst_options) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [username,hashed, firstName, lastName, email, affiliation, birthday, image_link, linked_nconst, interests, nconst_options]
+            `INSERT INTO users (username, hashed_password, first_name, last_name, email, affiliation, birthday, image_link, linked_nconst, interests, nconst_options) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [username,hashed, firstName, lastName, email, affiliation, birthday, image_link, linked_nconst, JSON.stringify(hashtag_ids), JSON.stringify(nconst_options)]
         );
         const found = await db.send_sql(
             `SELECT user_id FROM users WHERE username = '${username}'`
@@ -216,6 +234,36 @@ const s3 = new aws.S3({
     region: process.env.S3_REGION
 });
 
+exports.getActor = async (req, res) => {
+    const { user_id } = req.session;
+
+    if (user_id == null) {
+        return res
+            .status(HTTP_STATUS.UNAUTHORIZED)
+            .json({ error: 'You must be logged in to view your actor.' });
+    }
+
+    try {
+        const actor_nconst = await db.send_sql(
+            `SELECT linked_nconst FROM users WHERE user_id = ${user_id}`
+        );
+
+        const actor = await db.send_sql(
+            `SELECT * FROM names WHERE nconst = '${actor_nconst[0].linked_nconst}'`
+        );
+
+        return res
+            .status(HTTP_STATUS.SUCCESS)
+            .json({ actor });
+    } catch (err) {
+        console.log(err);
+        return res
+            .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+            .json({ error: 'Error querying database.' });
+    }
+
+}
+
 // Note: Stores selfie in S3 and then returns 5 closest actors
 exports.getClosest = async (req, res) => {
     console.log(req.body);
@@ -274,7 +322,7 @@ exports.getClosest = async (req, res) => {
             console.log(count);
             const key = username + count[0]['count'];
             const params = {
-                Bucket: process.env.S3_BUCKET_2,
+                Bucket: process.env.S3_BUCKET_1,
                 Key: key,
                 Body: data
             };
@@ -939,7 +987,7 @@ exports.getFriendRecommendation = async (req, res) => {
         const parsed = Object.entries(JSON.parse(recs[0].friend_recommendation));
         parsed.sort((a, b) => a[1] - b[1]);
         friendRecommendation = entries.slice(0, 5).map(entry => entry[0]);
-      } 
+      }
     return res
       .status(HTTP_STATUS.SUCCESS)
       .json({ friendRecommendation });
@@ -996,6 +1044,31 @@ exports.checkIfLikedPost = async (req, res) => {
         .status(HTTP_STATUS.SUCCESS)
         .json({ liked: false });
     }
+  } catch (err) {
+    console.log(err);
+    return res
+      .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+      .json({ error: 'Error querying database.' });
+  }
+}
+
+exports.getCurrentUser = async (req, res) => {
+  const { user_id } = req.session;
+
+  if (user_id == null) {
+    return res
+      .status(HTTP_STATUS.UNAUTHORIZED)
+      .json({ error: 'You must be logged in to view your username.' });
+  }
+
+  try {
+    const response = await db.send_sql(
+      `SELECT * FROM users WHERE user_id = ${user_id}`
+    );
+
+    return res
+      .status(HTTP_STATUS.SUCCESS)
+      .json({ response });
   } catch (err) {
     console.log(err);
     return res

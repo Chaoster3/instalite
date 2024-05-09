@@ -37,7 +37,7 @@ const CreatePosts = () => {
       const body = new FormData();
       body.append("image", image);
       body.append("content", form.content);
-      body.append("hashtag_names", hashtag_names);
+      body.append("hashtag_names", form.hashtag_names);
       const response = await axiosInstance.post(
         `${BACKEND_URL}/posts/createPost`,
         body
@@ -137,7 +137,6 @@ const CreatePosts = () => {
             />
             <button type="button" onClick={finalizeTag} className="px-4 py-2 text-white bg-blue-500 rounded-md">Search</button>
           </div>
-          {errorMessage && <p className="text-red-500">{errorMessage}</p>}
           <div className="flex flex-wrap mb-4">
             {searchResults.map((tag) => (
               <button key={tag.id} type="button" onClick={() => addSearchedTagToFinal(tag)} className="border px-3 py-1 mr-2 mb-2 text-sm bg-gray-200 rounded-md hover:border-red-500">{tag.name}</button>

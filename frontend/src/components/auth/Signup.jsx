@@ -179,16 +179,17 @@ function Signup() {
     try {
       const body = {};
       for (const key in formData) {
-        body.key = formData[key];
+        body[key] = formData[key];
       }
       body.interests = hashtags;
-      const trimmed = matches.map(match => match.slice(0, -4));
-      body.nconst_opions = trimmed;
-      body.linked_nconst = linked_nconst.slice(0, -4);
+      console.log(matches);
+      const trimmed = matches.map(match => match.image.slice(BACKEND_URL.length + "/images/".length, -4));
+      console.log(trimmed);
+      body.nconst_options = trimmed;
+      body.linked_nconst = linked_nconst.slice(BACKEND_URL.length + "/images/".length, -4);
 
       const response = await axiosInstance.post(`${BACKEND_URL}/users/register`, body);
-
-      if (response.status === 201) {
+      if (response.status === 200) {
         console.log('Sign Up successful');
 
         // Log the user in
@@ -196,7 +197,7 @@ function Signup() {
           username: formData.username,
           password: formData.password,
         });
-
+        console.log('Hi')
         navigate('/');
       }
     } catch (error) {

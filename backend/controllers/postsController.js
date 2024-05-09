@@ -64,7 +64,7 @@ exports.createPost = async (req, res) => {
               return res.status(500).send('Error uploading file');
             } else {
               console.log(s3Data.Location);
-              content = content + "\n\n" + "<img src='" + s3Data.Location + "' alt=image>";
+              content = content + "\n\n" + "<img src=" + s3Data.Location + " alt=image>";
               const q = `INSERT INTO posts (author_id, content, hashtag_ids) VALUES (?, ?, ?)`;
               await db.insert_items(q, [req.session.user_id, content, JSON.stringify(hashtag_ids)])
               const latest = await db.send_sql(

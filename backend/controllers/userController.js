@@ -38,6 +38,7 @@ exports.register = async function (req, res) {
       interests == null ||
       nconst_options == null
     ) {
+        console.log(username, password, firstName, lastName, email, affiliation, birthday, image_link, linked_nconst, interests, nconst_options);
         return res.status(400).json({
             error:
                 'One or more of the fields you entered was empty, please try again.',
@@ -63,8 +64,8 @@ exports.register = async function (req, res) {
             });
         });
         await db.send_sql(
-            `INSERT INTO users (username, hashed_password, first_name, last_name, email, affiliation, birthday, image_link, linked_nconst, interests, nconst_options) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [username,hashed, firstName, lastName, email, affiliation, birthday, image_link, linked_nconst, interests, nconst_options]
+            `INSERT INTO users (username, hashed_password, first_name, last_name, email, affiliation, birthday, image_link, linked_nconst, interests, nconst_options) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [username,hashed, firstName, lastName, email, affiliation, birthday, image_link, linked_nconst, JSON.stringify(interests), JSON.stringify(nconst_options)]
         );
         const found = await db.send_sql(
             `SELECT user_id FROM users WHERE username = '${username}'`
@@ -274,7 +275,7 @@ exports.getClosest = async (req, res) => {
             console.log(count);
             const key = username + count[0]['count'];
             const params = {
-                Bucket: process.env.S3_BUCKET_2,
+                Bucket: process.env.S3_BUCKET_1,
                 Key: key,
                 Body: data
             };

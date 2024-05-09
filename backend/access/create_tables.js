@@ -115,16 +115,18 @@ async function create_tables(db) {
 
   // Post table
   var q4 = db.create_tables(
-    'CREATE TABLE IF NOT EXISTS posts ( \
-      post_id INT NOT NULL AUTO_INCREMENT, \
-      author_id INT, \
-      content VARCHAR(255), \
-      hashtag_ids VARCHAR(255), \
-      user_ids_who_liked VARCHAR(255), \
-      foreign_username VARCHAR(255), \
-      PRIMARY KEY(post_id), \
-      FOREIGN KEY(author_id) REFERENCES users(user_id) \
-    );'
+    // 'CREATE TABLE IF NOT EXISTS posts ( \
+    //   post_id INT NOT NULL AUTO_INCREMENT, \
+    //   author_id INT, \
+    //   content VARCHAR(255), \
+    //   hashtag_ids VARCHAR(255), \
+    //   user_ids_who_liked VARCHAR(255), \
+    //   foreign_username VARCHAR(255), \
+    //   PRIMARY KEY(post_id), \
+    //   FOREIGN KEY(author_id) REFERENCES users(user_id) \
+    // );'
+    `ALTER TABLE posts
+     ADD COLUMN image_url VARCHAR(255);`
   );
 
 
@@ -194,8 +196,9 @@ async function create_tables(db) {
       FOREIGN KEY (user_id) REFERENCES users(user_id) \
     );'
   );
-  
-  return await Promise.all([q0, q1, q2, q3, q4, q5, q6, q7, q8, q9, q10]);
+
+  // return await Promise.all([q0, q1, q2, q3, q4, q5, q6, q7, q8, q9, q10]);
+  return await Promise.all([q4])
 }
 
 // Database connection setup
@@ -206,36 +209,36 @@ var result = create_tables(dbaccess);
 console.log('Tables created');
 //db.close_db();
 
-const populateNames = async function populateFriendsTable() {
-  const csvFilePath = '../basic-face-match-main/names.csv';
-  const csvData = fs.readFileSync(csvFilePath, 'utf-8');
+// const populateNames = async function populateFriendsTable() {
+//   const csvFilePath = '../basic-face-match-main/names.csv';
+//   const csvData = fs.readFileSync(csvFilePath, 'utf-8');
 
-  // Split CSV data by newlines and parse each line
-  const rows = csvData
-    .trim()
-    .split('\n')
-    .map((row) => row.split(','));
+//   // Split CSV data by newlines and parse each line
+//   const rows = csvData
+//     .trim()
+//     .split('\n')
+//     .map((row) => row.split(','));
 
-  // Assuming the first row of the CSV contains column headers
-  const columns = rows.shift();
+//   // Assuming the first row of the CSV contains column headers
+//   const columns = rows.shift();
 
-  // Generate the INSERT query dynamically
-  let insertQuery = `INSERT INTO names (nconst, primaryName, birthYear, deathYear) VALUES (?, ?, ?, ?)`;
-  try {
-    rows.forEach(async (row) => {
-      console.log(row[1], row[2]);
-      await dbaccess.insert_items(insertQuery, [row[3], row[0], row[1], row[2]]);
-      console.log('hi')
-    })
-  } catch (e) {
-    console.log(e);
-    return;
-  }
-  console.log('finished adding items');
-  return;
-};
+//   // Generate the INSERT query dynamically
+//   let insertQuery = `INSERT INTO names (nconst, primaryName, birthYear, deathYear) VALUES (?, ?, ?, ?)`;
+//   try {
+//     rows.forEach(async (row) => {
+//       console.log(row[1], row[2]);
+//       await dbaccess.insert_items(insertQuery, [row[3], row[0], row[1], row[2]]);
+//       console.log('hi')
+//     })
+//   } catch (e) {
+//     console.log(e);
+//     return;
+//   }
+//   console.log('finished adding items');
+//   return;
+// };
 
 
-populateNames();
+// populateNames();
 console.log("finished populating names");
 const PORT = config.serverPort;

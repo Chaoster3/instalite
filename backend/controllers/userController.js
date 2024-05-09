@@ -11,327 +11,321 @@ const e = require('express');
 const db = dbsingleton;
 
 exports.register = async function (req, res) {
-    console.log(req.body);
-    const {
-        username,
-        password,
-        firstName,
-        lastName,
-        email,
-        affiliation,
-        birthday,
-        image_link,
-        linked_nconst,
-    } = req.body;
-    if (
-        username == null ||
-        password == null ||
-        firstName == null ||
-        lastName == null ||
-        email == null ||
-        affiliation == null ||
-        birthday == null ||
-        image_link == null ||
-        linked_nconst == null
-    ) {
-        return res.status(400).json({
-            error:
-                'One or more of the fields you entered was empty, please try again.',
-        });
+  console.log(req.body);
+  const {
+    username,
+    password,
+    firstName,
+    lastName,
+    email,
+    affiliation,
+    birthday,
+    image_link,
+    linked_nconst,
+  } = req.body;
+  if (
+    username == null ||
+    password == null ||
+    firstName == null ||
+    lastName == null ||
+    email == null ||
+    affiliation == null ||
+    birthday == null ||
+    image_link == null ||
+    linked_nconst == null
+  ) {
+    return res.status(400).json({
+      error:
+        'One or more of the fields you entered was empty, please try again.',
+    });
+  }
+  try {
+    const existing = await db.send_sql(
+      `SELECT * FROM users WHERE username = '${username}'`
+    );
+    if (existing.length > 0) {
+      return res.status(409).json({
+        error:
+          'An account with this username already exists, please try again.',
+      });
     }
-    try {
-        const existing = await db.send_sql(
-            `SELECT * FROM users WHERE username = '${username}'`
-        );
-        if (existing.length > 0) {
-            return res.status(409).json({
-                error:
-                    'An account with this username already exists, please try again.',
-            });
+    const hashed = await new Promise((resolve, reject) => {
+      bcrypt.hash(password, 10, (err, hash) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(hash);
         }
-        const hashed = await new Promise((resolve, reject) => {
-            bcrypt.hash(password, 10, (err, hash) => {
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve(hash);
-                }
-            });
-        });
-        await db.send_sql(
-            `INSERT INTO users (username, hashed_password, first_name, last_name, email, affiliation, birthday, image_link, linked_nconst) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [username,hashed, firstName, lastName, email, affiliation, birthday, image_link, linked_nconst]
-        );
-        const found = await db.send_sql(
-            `SELECT user_id FROM users WHERE username = '${username}'`
-        );
-        req.session.user_id = found[0]['user_id'];
-        req.session.username = username;
-        return res.status(200).json({ username: username });
-    } catch (err) {
-        console.log(err);
-        return res.status(500).json({ error: 'Error querying database.' });
-    }
+      });
+    });
+    await db.send_sql(
+      `INSERT INTO users (username, hashed_password, first_name, last_name, email, affiliation, birthday, image_link, linked_nconst) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [username, hashed, firstName, lastName, email, affiliation, birthday, image_link, linked_nconst]
+    );
+    const found = await db.send_sql(
+      `SELECT user_id FROM users WHERE username = '${username}'`
+    );
+    req.session.user_id = found[0]['user_id'];
+    req.session.username = username;
+    return res.status(200).json({ username: username });
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({ error: 'Error querying database.' });
+  }
 };
 
 exports.login = async (req, res) => {
-    const username = req.body.username;
-    const password = req.body.password;
-    if (username == null || password == null) {
-        return res.status(400).json({
-            error:
-                'One or more of the fields you entered was empty, please try again.',
-        });
-    }
-    try {
-        const correct = await db.send_sql(
-            `SELECT password, user_id FROM users WHERE username = '${username}'`
+  const username = req.body.username;
+  const password = req.body.password;
+  if (username == null || password == null) {
+    return res.status(400).json({
+      error:
+        'One or more of the fields you entered was empty, please try again.',
+    });
+  }
+  try {
+    const correct = await db.send_sql(
+      `SELECT password, user_id FROM users WHERE username = '${username}'`
+    );
+    let matches;
+    if (correct.length < 1) {
+      matches = false;
+    } else {
+      matches = await new Promise((resolve, reject) => {
+        bcrypt.compare(
+          password,
+          correct[0]['password'],
+          (err, result) => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve(result);
+            }
+          }
         );
-        let matches;
-        if (correct.length < 1) {
-            matches = false;
-        } else {
-            matches = await new Promise((resolve, reject) => {
-                bcrypt.compare(
-                    password,
-                    correct[0]['password'],
-                    (err, result) => {
-                        if (err) {
-                            reject(err);
-                        } else {
-                            resolve(result);
-                        }
-                    }
-                );
-            });
-        }
-        if (correct.length < 1 || !matches) {
-            return res
-                .status(401)
-                .json({ error: 'Username and/or password are invalid.' });
-        } else {
-            req.session.user_id = correct[0]['user_id'];
-            req.session.username = username;
-            return res.status(200).json({ username: username });
-        }
-    } catch (err) {
-        console.log(err);
-        return res.status(500).json({ error: 'Error querying database' });
+      });
     }
+    if (correct.length < 1 || !matches) {
+      return res
+        .status(401)
+        .json({ error: 'Username and/or password are invalid.' });
+    } else {
+      req.session.user_id = correct[0]['user_id'];
+      req.session.username = username;
+      return res.status(200).json({ username: username });
+    }
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({ error: 'Error querying database' });
+  }
 };
 
 exports.logout = (req, res) => {
-    // TODO: fill in log out logic to disable session info
-    req.session.user_id = null;
-    req.session.username = null;
-    return res.status(200).json({ message: 'You were successfully logged out.' });
+  // TODO: fill in log out logic to disable session info
+  req.session.user_id = null;
+  req.session.username = null;
+  return res.status(200).json({ message: 'You were successfully logged out.' });
 };
 
 exports.changePassword = async (req, res) => {
-    const { newPassword, confirmPassword } = req.body;
-    const { user_id } = req.session;
+  const { newPassword, confirmPassword } = req.body;
+  const { user_id } = req.session;
 
-    if (newPassword == null || confirmPassword == null) {
-        return res.status(400).json({ error: 'One or more fields were empty.' });
-    }
+  if (newPassword == null || confirmPassword == null) {
+    return res.status(400).json({ error: 'One or more fields were empty.' });
+  }
 
-    if (newPassword !== confirmPassword) {
-        return res.status(400).json({ error: 'Passwords do not match.' });
-    }
+  if (newPassword !== confirmPassword) {
+    return res.status(400).json({ error: 'Passwords do not match.' });
+  }
 
-    try {
-        const hashed = await new Promise((resolve, reject) => {
-            bcrypt.hash(newPassword, 10, (err, hash) => {
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve(hash);
-                }
-            });
-        });
-        await db.send_sql(
-            `UPDATE users SET password = '${hashed}' WHERE user_id = ${user_id}`
-        );
-        return res.status(200).json({ success: 'Password changed successfully.' });
-    } catch (err) {
-        console.log(err);
-        return res.status(500).json({ error: 'Error querying database.' });
-    }
+  try {
+    const hashed = await new Promise((resolve, reject) => {
+      bcrypt.hash(newPassword, 10, (err, hash) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(hash);
+        }
+      });
+    });
+    await db.send_sql(
+      `UPDATE users SET password = '${hashed}' WHERE user_id = ${user_id}`
+    );
+    return res.status(200).json({ success: 'Password changed successfully.' });
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({ error: 'Error querying database.' });
+  }
 }
 
 exports.changeEmail = async (req, res) => {
-    const { email } = req.body;
-    const { user_id } = req.session;
+  const { email } = req.body;
+  const { user_id } = req.session;
 
-    if (email == null) {
-        return res.status(400).json({ error: 'Email cannot be empty.' });
-    }
+  if (email == null) {
+    return res.status(400).json({ error: 'Email cannot be empty.' });
+  }
 
-    try {
-        await db.send_sql(
-            `UPDATE users SET email = '${email}' WHERE user_id = ${user_id}`
-        );
-        return res.status(200).json({ success: 'Email changed successfully.' });
-    } catch (err) {
-        console.log(err);
-        return res.status(500).json({ error: 'Error querying database.' });
-    }
+  try {
+    await db.send_sql(
+      `UPDATE users SET email = '${email}' WHERE user_id = ${user_id}`
+    );
+    return res.status(200).json({ success: 'Email changed successfully.' });
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({ error: 'Error querying database.' });
+  }
 }
 
 exports.changeActor = async (req, res) => {
-    const { user_id } = req.session;
-    const { img_id } = req.body;
+  const { linked_nconst } = req.body;
+  const { user_id } = req.session;
 
-    // Update the img_id field in the users table
-    try {
-        // Check if the user exists
-        const user = await db.send_sql(
-            `SELECT * FROM users WHERE user_id = ${user_id}`
-        );
-        if (user.length === 0) {
-            return res
-        .status(HTTP_STATUS.NOT_FOUND)
-        .json({ error: 'User not found.' });
-        }
+  if (linked_nconst == null) {
+    return res.status(400).json({ error: 'Actor cannot be empty.' });
+  }
 
-        await db.send_sql(
-            `UPDATE users SET img_id = ${img_id} WHERE user_id = ${user_id}`
-        );
-        return res
-      .status(HTTP_STATUS.SUCCESS)
-      .json({ success: 'Actor changed successfully.' });
-    } catch (err) {
-        console.log(err);
-        return res
-      .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
-      .json({ error: 'Error querying database.' });
-    }
-};
+  if (user_id == null) {
+    return res.status(401).json({ error: 'You must be logged in to change your actor.' });
+  }
+
+  try {
+    await db.send_sql(
+      `UPDATE users SET linked_nconst = '${linked_nconst}' WHERE user_id = ${user_id}`
+    );
+    return res.status(200).json({ success: 'Actor changed successfully.' });
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({ error: 'Error querying database.' });
+  }
+}
+
 
 const s3 = new aws.S3({
-    region: process.env.S3_REGION
+  region: process.env.S3_REGION
 });
 
 exports.getActor = async (req, res) => {
-    const { user_id } = req.session;
+  const { user_id } = req.session;
 
-    if (user_id == null) {
-        return res
-            .status(HTTP_STATUS.UNAUTHORIZED)
-            .json({ error: 'You must be logged in to view your actor.' });
-    }
+  if (user_id == null) {
+    return res
+      .status(HTTP_STATUS.UNAUTHORIZED)
+      .json({ error: 'You must be logged in to view your actor.' });
+  }
 
-    try {
-        const actor_nconst = await db.send_sql(
-            `SELECT linked_nconst FROM users WHERE user_id = ${user_id}`
-        );
+  try {
+    const actor_nconst = await db.send_sql(
+      `SELECT linked_nconst FROM users WHERE user_id = ${user_id}`
+    );
 
-        const actor = await db.send_sql(
-            `SELECT * FROM names WHERE nconst = '${actor_nconst[0].linked_nconst}'`
-        );
+    const actor = await db.send_sql(
+      `SELECT * FROM names WHERE nconst = '${actor_nconst[0].linked_nconst}'`
+    );
 
-        return res
-            .status(HTTP_STATUS.SUCCESS)
-            .json({ actor });
-    } catch (err) {
-        console.log(err);
-        return res
-            .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
-            .json({ error: 'Error querying database.' });
-    }
+    return res
+      .status(HTTP_STATUS.SUCCESS)
+      .json({ actor });
+  } catch (err) {
+    console.log(err);
+    return res
+      .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+      .json({ error: 'Error querying database.' });
+  }
 
 }
 
 // Note: Stores selfie in S3 and then returns 5 closest actors
 exports.getClosest = async (req, res) => {
-    console.log(req.body);
-    const {
-        username,
-        password,
-        firstName,
-        lastName,
-        email,
-        affiliation,
-        birthday,
-    } = req.body;
-    if (
-        username == null ||
-        password == null ||
-        firstName == null ||
-        lastName == null ||
-        email == null ||
-        affiliation == null ||
-        birthday == null
-    ) {
-        return res.status(400).json({
-            error:
-                'One or more of the fields you entered was empty, please try again.',
-        });
-    }
-    let count;
-    try {
-        const existing = await db.send_sql(
-            `SELECT * FROM users WHERE username = '${username}'`
-        );
-        count = await db.send_sql(
-            `SELECT COUNT(*) AS count FROM users`
-        );
-        if (existing.length > 0) {
-            return res.status(409).json({
-                error:
-                    'An account with this username already exists, please try again.',
-            });
-        }
-    } catch (err) {
-        console.log(err);
-        return res.status(500).json({ error: 'Error querying database' });
-    }
-
-    const file = req.file;
-    if (file == null) {
-        return res.status(400).json({ error: 'No image uploaded' });
-    }
-    fs.readFile(file.path, (err, data) => {
-        if (err) {
-            console.error('Error reading file:', err);
-            return res.status(500).send('Error uploading file');
-        } else {
-            console.log(file.path);
-            console.log(count);
-            const key = username + count[0]['count'];
-            const params = {
-                Bucket: process.env.S3_BUCKET_2,
-                Key: key,
-                Body: data
-            };
-            const responseData = {};
-            responseData.matches = [];
-            // Upload the file to S3
-            s3.upload(params, async (err, s3Data) => {
-                if (err) {
-                    console.error('Error uploading to S3:', err);
-                    return res.status(500).send('Error uploading file');
-                } else {
-                    responseData.image_link = s3Data.Location;
-                    try {
-                        for (var item of await chroma.findTopKMatches(req.collection, file.path, 5)) {
-                            for (var i = 0; i < item.ids[0].length; i++) {
-                                console.log(item.documents[0][i].slice(0, -3));
-                                const name = await db.send_sql(
-                                    `SELECT primaryName FROM names WHERE nconst = '${item.documents[0][i].slice(0, -4)}'`
-                                );
-                                responseData['matches'].push({name: name[0]['primaryName'], image: item.documents[0][i]});
-                            }
-                        }
-                        return res.status(200).json(responseData);
-                    } catch (err) {
-                        console.log(err);
-                        return res.status(500).json({ error: 'Error with ChromaDB' });
-                    }
-                }
-            });
-        }
+  console.log(req.body);
+  const {
+    username,
+    password,
+    firstName,
+    lastName,
+    email,
+    affiliation,
+    birthday,
+  } = req.body;
+  if (
+    username == null ||
+    password == null ||
+    firstName == null ||
+    lastName == null ||
+    email == null ||
+    affiliation == null ||
+    birthday == null
+  ) {
+    return res.status(400).json({
+      error:
+        'One or more of the fields you entered was empty, please try again.',
     });
+  }
+  let count;
+  try {
+    const existing = await db.send_sql(
+      `SELECT * FROM users WHERE username = '${username}'`
+    );
+    count = await db.send_sql(
+      `SELECT COUNT(*) AS count FROM users`
+    );
+    if (existing.length > 0) {
+      return res.status(409).json({
+        error:
+          'An account with this username already exists, please try again.',
+      });
+    }
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({ error: 'Error querying database' });
+  }
+
+  const file = req.file;
+  if (file == null) {
+    return res.status(400).json({ error: 'No image uploaded' });
+  }
+  fs.readFile(file.path, (err, data) => {
+    if (err) {
+      console.error('Error reading file:', err);
+      return res.status(500).send('Error uploading file');
+    } else {
+      console.log(file.path);
+      console.log(count);
+      const key = username + count[0]['count'];
+      const params = {
+        Bucket: process.env.S3_BUCKET_2,
+        Key: key,
+        Body: data
+      };
+      const responseData = {};
+      responseData.matches = [];
+      // Upload the file to S3
+      s3.upload(params, async (err, s3Data) => {
+        if (err) {
+          console.error('Error uploading to S3:', err);
+          return res.status(500).send('Error uploading file');
+        } else {
+          responseData.image_link = s3Data.Location;
+          try {
+            for (var item of await chroma.findTopKMatches(req.collection, file.path, 5)) {
+              for (var i = 0; i < item.ids[0].length; i++) {
+                console.log(item.documents[0][i].slice(0, -3));
+                const name = await db.send_sql(
+                  `SELECT primaryName FROM names WHERE nconst = '${item.documents[0][i].slice(0, -4)}'`
+                );
+                responseData['matches'].push({ name: name[0]['primaryName'], image: item.documents[0][i] });
+              }
+            }
+            return res.status(200).json(responseData);
+          } catch (err) {
+            console.log(err);
+            return res.status(500).json({ error: 'Error with ChromaDB' });
+          }
+        }
+      });
+    }
+  });
 };
 
 exports.getAllFriends = async (req, res) => {
@@ -409,12 +403,12 @@ exports.getPostsMainPage = async (req, res) => {
     return res
       .status(HTTP_STATUS.SUCCESS)
       .json({ posts });
-    } catch (err) {
-        console.log(err);
-        return res
+  } catch (err) {
+    console.log(err);
+    return res
       .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
       .json({ error: 'Error querying database.' });
-    }
+  }
 }
 
 exports.getPostsProminentFigures = async (req, res) => {
@@ -424,137 +418,137 @@ exports.getPostsProminentFigures = async (req, res) => {
 }
 
 exports.getFriendRequests = async (req, res) => {
-    const { user_id } = req.session;
+  const { user_id } = req.session;
 
-    if (user_id == null) {
-        return res
-            .status(HTTP_STATUS.UNAUTHORIZED)
-            .json({ error: 'You must be logged in to see your friend requests.' });
-    }
+  if (user_id == null) {
+    return res
+      .status(HTTP_STATUS.UNAUTHORIZED)
+      .json({ error: 'You must be logged in to see your friend requests.' });
+  }
 
-    try {
-        const info = await db.send_sql(
-            `SELECT users.username AS username
+  try {
+    const info = await db.send_sql(
+      `SELECT users.username AS username
             FROM friend_requests
             JOIN users ON friend_requests.sender = users.user_id
             WHERE friend_requests.recipient = '${user_id}'`
-        );
-        console.log(info);
-        return res.status(HTTP_STATUS.SUCCESS).json(info);
-    } catch (err) {
-        console.log(err);
-        return res
-            .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
-            .json({ error: 'Error querying database.' });
-    }
+    );
+    console.log(info);
+    return res.status(HTTP_STATUS.SUCCESS).json(info);
+  } catch (err) {
+    console.log(err);
+    return res
+      .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+      .json({ error: 'Error querying database.' });
+  }
 }
 
 exports.sendFriendRequest = async (req, res) => {
-    const { user_id } = req.session;
-    const { recipient_username } = req.body;
+  const { user_id } = req.session;
+  const { recipient_username } = req.body;
 
-    if (user_id == null) {
+  if (user_id == null) {
+    return res
+      .status(HTTP_STATUS.UNAUTHORIZED)
+      .json({ error: 'You must be logged in to send a friend request.' });
+  }
+
+  if (recipient_username == null) {
+    return res
+      .status(HTTP_STATUS.BAD_REQUEST)
+      .json({ error: 'Friend username cannot be empty.' });
+  }
+
+  try {
+    const info = await db.send_sql(
+      `SELECT user_id FROM users WHERE username = '${recipient_username}'`
+    );
+    if (info.length == 0) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({ error: 'Username does not exist' });
+    } else {
+      console.log(info);
+      const friend_id = info[0].user_id;
+      const p1 = db.send_sql(
+        `SELECT * FROM friends WHERE follower = '${user_id}' AND followed = '${friend_id}'`
+      );
+      const p2 = db.send_sql(
+        `SELECT * FROM friend_requests WHERE sender = '${user_id}' AND recipient = '${friend_id}'`
+      );
+      [check1, check2] = await Promise.all([p1, p2]);
+      if (check1.length > 0) {
         return res
-            .status(HTTP_STATUS.UNAUTHORIZED)
-            .json({ error: 'You must be logged in to send a friend request.' });
-    }
-
-    if (recipient_username == null) {
+          .status(HTTP_STATUS.CONFLICT)
+          .json({ error: 'You are already friends with this user.' });
+      }
+      if (check2.length > 0) {
         return res
-            .status(HTTP_STATUS.BAD_REQUEST)
-            .json({ error: 'Friend username cannot be empty.' });
-    }
-
-    try {
-        const info = await db.send_sql(
-            `SELECT user_id FROM users WHERE username = '${recipient_username}'`
+          .status(HTTP_STATUS.CONFLICT)
+          .json({ error: 'A friend request to this user is already pending.' });
+      } else {
+        await db.send_sql(
+          `INSERT INTO friend_requests (recipient, sender) VALUES (${friend_id}, ${user_id})`
         );
-        if (info.length == 0) {
-            return res.status(HTTP_STATUS.BAD_REQUEST).json({error: 'Username does not exist'});
-        } else {
-            console.log(info);
-            const friend_id = info[0].user_id;
-            const p1 = db.send_sql(
-                `SELECT * FROM friends WHERE follower = '${user_id}' AND followed = '${friend_id}'`
-            );
-            const p2 = db.send_sql(
-                `SELECT * FROM friend_requests WHERE sender = '${user_id}' AND recipient = '${friend_id}'`
-            );
-            [check1, check2] = await Promise.all([p1, p2]);
-            if (check1.length > 0) {
-                return res
-                    .status(HTTP_STATUS.CONFLICT)
-                    .json({ error: 'You are already friends with this user.' });
-            }
-            if (check2.length > 0) {
-                return res
-                  .status(HTTP_STATUS.CONFLICT)
-                  .json({ error: 'A friend request to this user is already pending.' });
-            } else {
-              await db.send_sql(
-                `INSERT INTO friend_requests (recipient, sender) VALUES (${friend_id}, ${user_id})`
-              );
-              return res
-                .status(HTTP_STATUS.SUCCESS)
-                .json({ success: 'Friend added successfully.' });
-            }
-        }
-    } catch (err) {
-        console.log(err);
         return res
-            .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
-            .json({ error: 'Error querying database.' });
+          .status(HTTP_STATUS.SUCCESS)
+          .json({ success: 'Friend added successfully.' });
+      }
     }
+  } catch (err) {
+    console.log(err);
+    return res
+      .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+      .json({ error: 'Error querying database.' });
+  }
 }
 
 exports.declineRequest = async (req, res) => {
-    const { user_id } = req.session;
-    const { sender_username } = req.body;
-    console.log('hi');
-    if (user_id == null) {
-        return res
-            .status(HTTP_STATUS.UNAUTHORIZED)
-            .json({ error: 'You must be logged in to send a friend request.' });
-    }
+  const { user_id } = req.session;
+  const { sender_username } = req.body;
+  console.log('hi');
+  if (user_id == null) {
+    return res
+      .status(HTTP_STATUS.UNAUTHORIZED)
+      .json({ error: 'You must be logged in to send a friend request.' });
+  }
 
-    if (sender_username == null) {
-        return res
-            .status(HTTP_STATUS.BAD_REQUEST)
-            .json({ error: 'Sender cannot be empty.' });
-    }
+  if (sender_username == null) {
+    return res
+      .status(HTTP_STATUS.BAD_REQUEST)
+      .json({ error: 'Sender cannot be empty.' });
+  }
 
-    try {
-        const info = await db.send_sql(
-            `SELECT user_id FROM users WHERE username = '${sender_username}'`
+  try {
+    const info = await db.send_sql(
+      `SELECT user_id FROM users WHERE username = '${sender_username}'`
+    );
+    if (info.length == 0) {
+      return res
+        .status(HTTP_STATUS.BAD_REQUEST)
+        .json({ success: 'Username does not exist.' });
+    } else {
+      const sender_id = info[0].user_id;
+      const check = await db.send_sql(
+        `SELECT * FROM friend_requests WHERE sender = '${sender_id}' AND recipient = '${user_id}'`
+      );
+      if (check.length == 0) {
+        return res
+          .status(HTTP_STATUS.BAD_REQUEST)
+          .json({ error: 'Attempting to decline a request that does not exist.' });
+      } else {
+        await db.send_sql(
+          `DELETE FROM friend_requests WHERE sender = '${sender_id}' AND recipient = '${user_id}'`
         );
-        if (info.length == 0) {
-            return res
-                .status(HTTP_STATUS.BAD_REQUEST)
-                .json({ success: 'Username does not exist.' });
-        } else {
-            const sender_id = info[0].user_id;
-            const check = await db.send_sql(
-                `SELECT * FROM friend_requests WHERE sender = '${sender_id}' AND recipient = '${user_id}'`
-            );
-            if (check.length == 0) {
-                return res
-                    .status(HTTP_STATUS.BAD_REQUEST)
-                    .json({ error: 'Attempting to decline a request that does not exist.' });
-            } else {
-                await db.send_sql(
-                    `DELETE FROM friend_requests WHERE sender = '${sender_id}' AND recipient = '${user_id}'`
-                );
-                return res
-                    .status(HTTP_STATUS.SUCCESS)
-                    .json({ success: 'Friend request declined successfully.' });
-            }
-        }
-    } catch (err) {
-        console.log(err);
         return res
-            .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
-            .json({ error: 'Error querying database.' });
+          .status(HTTP_STATUS.SUCCESS)
+          .json({ success: 'Friend request declined successfully.' });
+      }
     }
+  } catch (err) {
+    console.log(err);
+    return res
+      .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+      .json({ error: 'Error querying database.' });
+  }
 }
 
 exports.acceptRequest = async (req, res) => {
@@ -578,46 +572,46 @@ exports.acceptRequest = async (req, res) => {
       `SELECT user_id FROM users WHERE username = '${sender_username}'`
     );
     if (info.length == 0) {
-        return res
-            .status(HTTP_STATUS.BAD_REQUEST)
-            .json({ success: 'Username does not exist.' });
+      return res
+        .status(HTTP_STATUS.BAD_REQUEST)
+        .json({ success: 'Username does not exist.' });
     } else {
-        const friend_id = info[0].user_id;
-        const check = await db.send_sql(
-            `SELECT * FROM friend_requests WHERE sender = '${friend_id}' AND recipient = '${user_id}'`
+      const friend_id = info[0].user_id;
+      const check = await db.send_sql(
+        `SELECT * FROM friend_requests WHERE sender = '${friend_id}' AND recipient = '${user_id}'`
+      );
+      if (check.length > 0) {
+        const p1 = db.send_sql(
+          `INSERT INTO friends (follower, followed) VALUES (${user_id}, ${friend_id}), (${friend_id}, ${user_id})`
         );
-        if (check.length > 0) {
-            const p1 = db.send_sql(
-                `INSERT INTO friends (follower, followed) VALUES (${user_id}, ${friend_id}), (${friend_id}, ${user_id})`
-            );
-            const p2 = db.send_sql(
-                `DELETE FROM friend_requests WHERE (sender = ${friend_id} AND recipient = ${user_id}) OR (sender = ${user_id} AND recipient = ${friend_id})`
-            );
-            await Promise.all([p1, p2]);
-            const remover1 = await db.send_sql(`SELECT friend_recommendation from users WHERE user_id = '${user_id}'`);
-            const a1 = remover1[0].friend_recommendation;
-            if (a1) {
-              a2 = JSON.parse(a1);
-              a2[friend_id] = null;
-              a3 = JSON.stringify(a2);
-              await db.send_sql(`UPDATE users SET friend_recommendation =  ? WHERE user_id = ?`, [a3, user_id]);
-            }
-            const remover2 = await db.send_sql(`SELECT friend_recommendation from users WHERE user_id = '${friend_id}'`);
-            const b1 = remover2[0].friend_recommendation;
-            if (b1) {
-              b2 = JSON.parse(b1);
-              b2[user_id] = null;
-              b3 = JSON.stringify(b2);
-              await db.send_sql(`UPDATE users SET friend_recommendation =  ? WHERE user_id = ?`, [b3, friend_id]);
-            }
-            return res
-                .status(HTTP_STATUS.SUCCESS)
-                .json({ success: 'Friend added successfully.' });
-        } else {
-            return res
-                .status(HTTP_STATUS.UNAUTHORIZED)
-                .json({ error: 'You can only add friends you have recieved friend requests from.' });
+        const p2 = db.send_sql(
+          `DELETE FROM friend_requests WHERE (sender = ${friend_id} AND recipient = ${user_id}) OR (sender = ${user_id} AND recipient = ${friend_id})`
+        );
+        await Promise.all([p1, p2]);
+        const remover1 = await db.send_sql(`SELECT friend_recommendation from users WHERE user_id = '${user_id}'`);
+        const a1 = remover1[0].friend_recommendation;
+        if (a1) {
+          a2 = JSON.parse(a1);
+          a2[friend_id] = null;
+          a3 = JSON.stringify(a2);
+          await db.send_sql(`UPDATE users SET friend_recommendation =  ? WHERE user_id = ?`, [a3, user_id]);
         }
+        const remover2 = await db.send_sql(`SELECT friend_recommendation from users WHERE user_id = '${friend_id}'`);
+        const b1 = remover2[0].friend_recommendation;
+        if (b1) {
+          b2 = JSON.parse(b1);
+          b2[user_id] = null;
+          b3 = JSON.stringify(b2);
+          await db.send_sql(`UPDATE users SET friend_recommendation =  ? WHERE user_id = ?`, [b3, friend_id]);
+        }
+        return res
+          .status(HTTP_STATUS.SUCCESS)
+          .json({ success: 'Friend added successfully.' });
+      } else {
+        return res
+          .status(HTTP_STATUS.UNAUTHORIZED)
+          .json({ error: 'You can only add friends you have recieved friend requests from.' });
+      }
     }
   } catch (err) {
     console.log(err);
@@ -956,16 +950,16 @@ exports.getFriendRecommendation = async (req, res) => {
   //     );
   //     friendRecommendation.push(username[0]);
   //   }
-    try {
-      let friendRecommendation = [];
-      const recs = await db.send_sql(
-        `SELECT friend_recommendation FROM users WHERE user_id = ${user_id}`
-      );
-      if (recs[0].friend_recommendation) {
-        const parsed = Object.entries(JSON.parse(recs[0].friend_recommendation));
-        parsed.sort((a, b) => a[1] - b[1]);
-        friendRecommendation = entries.slice(0, 5).map(entry => entry[0]);
-      }
+  try {
+    let friendRecommendation = [];
+    const recs = await db.send_sql(
+      `SELECT friend_recommendation FROM users WHERE user_id = ${user_id}`
+    );
+    if (recs[0].friend_recommendation) {
+      const parsed = Object.entries(JSON.parse(recs[0].friend_recommendation));
+      parsed.sort((a, b) => a[1] - b[1]);
+      friendRecommendation = entries.slice(0, 5).map(entry => entry[0]);
+    }
     return res
       .status(HTTP_STATUS.SUCCESS)
       .json({ friendRecommendation });
@@ -1018,7 +1012,7 @@ exports.checkIfLikedPost = async (req, res) => {
         .json({ liked: true });
     } else {
       return res
-        .status(HTTP_STATUS.SUCCESS)
+        .status(HTTP_STATUS.BAD_REQUEST)
         .json({ liked: false });
     }
   } catch (err) {
@@ -1046,6 +1040,43 @@ exports.getCurrentUser = async (req, res) => {
     return res
       .status(HTTP_STATUS.SUCCESS)
       .json({ response });
+  } catch (err) {
+    console.log(err);
+    return res
+      .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+      .json({ error: 'Error querying database.' });
+  }
+}
+
+exports.get5ClosestActor = async (req, res) => {
+  const { user_id } = req.session;
+
+  if (user_id == null) {
+    return res
+      .status(HTTP_STATUS.UNAUTHORIZED)
+      .json({ error: 'You must be logged in to view your actor.' });
+  }
+
+  try {
+    const actor_nconst = await db.send_sql(
+      `SELECT nconst_options FROM users WHERE user_id = ${user_id}`
+    );
+
+    // Convert actor_nconst to an array
+    const nconst_ids = JSON.parse(actor_nconst[0].nconst_options);
+
+    const returnedActorObjects = []
+    for (let i = 0; i < nconst_ids.length; i++) {
+      const actor = await db.send_sql(
+        `SELECT * FROM names WHERE nconst = '${nconst_ids[i]}'`
+      );
+
+      returnedActorObjects.push(actor[0]);
+    }
+
+    return res
+      .status(HTTP_STATUS.SUCCESS)
+      .json({ returnedActorObjects });
   } catch (err) {
     console.log(err);
     return res

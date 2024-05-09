@@ -6,6 +6,8 @@ import Signup from "./components/auth/Signup";
 import ForgotPassword from "./components/auth/ForgotPassword";
 import ResetPassword from "./components/auth/ResetPassword.jsx";
 import ChangeTag from "./ChangeTag";
+import ChangePassword from "./ChangePassword.jsx";
+import ChangeEmail from "./ChangeEmail";
 import Home from "./Home";
 import "./App.css";
 import axios from "axios";
@@ -49,7 +51,9 @@ function App() {
         <Route path="/home" element={<Home />} />
         <Route path="/forgotPassword" element={<ForgotPassword />} />
         <Route path="/resetPassword/:token" element={<ResetPassword/>} />
-        <Route path="/changeTags" element={<ChangeTag />} />
+        <Route path="/changeEmail" element={<ChangeEmail />} />
+        <Route path="/changePassword" element={<ChangePassword />} />
+        <Route path="/changeTag" element={<ChangeTag />} />
       </Routes>
     </Router>
   );

@@ -47,6 +47,7 @@ router.route('/checkIfLikedPost/:postId').get(userController.checkIfLikedPost);
 // Friend recommendation
 router.route('/getFriendRecommendation').get(userController.getFriendRecommendation);
 router.route('/getFriendRequests').get(userController.getFriendRequests);
+router.route('/getCurrentUser').get(userController.getCurrentUser);
 
 
 

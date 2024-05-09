@@ -12,4 +12,7 @@ router.route('/updateUserHashTags').post(tagsController.updateUserHashTags);
 // Let users search for specific hashtags
 router.route('/searchHashTags/:q').get(tagsController.searchHashTags);
 
+// Change a tag id into hashtag name
+router.route('/getTagNameFromID/:tagId').get(tagsController.getTagNameFromID);
+
 module.exports = router;

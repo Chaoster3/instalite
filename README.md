@@ -23,7 +23,7 @@ Extra credit:
 -Dynamic search: When selecting interests, options for interests that have previously been entered by users show up dynamically based on what is being typed  
 -Light mode/dark mode: Light and dark mode for the application can be toggled  
 
-Source files
+Source files  
 -All files in /frontend/src except utils folder and assets folder  
 -All files in /backend/access  
 -All files in /backend/controllers  

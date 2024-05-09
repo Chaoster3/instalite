@@ -11,10 +11,13 @@ export function Profile() {
 
   const [currentUser, setCurrentUser] = useState({});
   const [currentUserInterestNames, SetCurrentUserInterestNames] = useState([]);
+  const [actor, setActor] = useState({
+    "linked_nconst": "",
+    "primaryName": "",
+  });
+  const [actorImageURL, setActorImageURL] = useState('');
 
-
-
-  // Get the current user's username
+  // Get the current user
   useEffect(() => {
     const fetchUsername = async () => {
       try {
@@ -24,15 +27,15 @@ export function Profile() {
           console.log(response.data.response[0])
           setCurrentUser(response.data.response[0]);
 
-          const currentUserInterestIds = response.data.response[0].interests;
-
           // Change the interest ids into hashtag names
+          const currentUserInterestIds = response.data.response[0].interests;
           const interestNames = []
           const interestsArray = JSON.parse(currentUserInterestIds);
           for (const id of interestsArray) {
             const response = await axios.get(`${BACKEND_URL}/tags/getTagNameFromID/${id}`)
             interestNames.push(response.data.name)
           }
+
           SetCurrentUserInterestNames(interestNames)
         } else {
           console.error("Error fetching username");
@@ -49,6 +52,35 @@ export function Profile() {
     fetchUsername();
   }, [])
 
+  // Get the actor associated with the current user
+  useEffect(() => {
+    const fetchActor = async () => {
+      try {
+        const response = await axios.get(`${BACKEND_URL}/users/getActor`)
+        if (response.status === 200) {
+          setActor({
+            "linked_nconst": response.data.actor[0].nconst,
+            "primaryName": response.data.actor[0].primaryName,
+          });
+        } else {
+          console.error("Error fetching actor");
+          setActor({
+            "linked_nconst": "",
+            "primaryName": "",
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching actor:", error);
+        setActor({
+          "linked_nconst": "",
+          "primaryName": "",
+        });
+      }
+    }
+
+    fetchActor();
+  }, [])
+
   const handleChangeEmail = async () => {
     navigate("/changeEmail")
   }
@@ -63,16 +95,20 @@ export function Profile() {
 
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col h-screen overflow-y-auto">
       {/* Card for the current user */}
+      <div style={{ paddingTop: '20px' }}>
+        <h1>User</h1>
+      </div>
       <Card className="flex-auto flex flex-row mt-6">
         <div className="flex flex-col items-center justify-center w-full">
           <div className="flex items-center justify-center flex-col">
             <Avatar
               variant="circular"
               className="border border-gray-900 p-0.5 h-52 w-52 left m-5"
-              src="https://docs.material-tailwind.com/img/face-2.jpg"
+              src={currentUser.image_link}
             />
+
             <div className="flex flex-row justify-end">
               <Button variant="contained" onClick={handleChangeEmail} className="mb-5 mr-5">
                 Change Email
@@ -97,17 +133,21 @@ export function Profile() {
 
 
       {/* Card for the matched person */}
+      <div style={{ paddingTop: '20px' }}>
+        <h1>Associated Actor</h1>
+      </div>
       <Card className="flex-auto flex flex-row mt-6">
-        <div className="flex flex-col">
-          <Avatar
-            variant="circular"
-            className="border border-gray-900 p-0.5 h-52 w-52 left m-5"
-            src="https://docs.material-tailwind.com/img/face-3.jpg"
-          />
-          <div className="text-2xl mb-5"> Actor Name</div>
-        </div>
-        <div className="grow flex flex-col w-max justify-evenly">
-          <div className="flex-auto text-right text-4xl mr-5">Hashtags</div>
+        <div className="flex flex-col items-center justify-center w-full">
+          <div className="flex items-center justify-center flex-col">
+            <Avatar
+              variant="circular"
+              className="border border-gray-900 p-0.5 h-52 w-52 left m-5"
+              src={`${BACKEND_URL}/images/${actor.linked_nconst}.jpg`}
+            />
+
+            <div className="text-2xl"> <strong>Name:</strong>{actor.primaryName}</div>
+            <div className="text-2xl"> <strong>Linked_Nconst:</strong> {actor.linked_nconst}</div>
+          </div>
         </div>
       </Card>
     </div>

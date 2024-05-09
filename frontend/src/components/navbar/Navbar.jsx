@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState } from "react"
 import {
   Navbar,
   Typography,
@@ -7,7 +7,7 @@ import {
   Button,
   Avatar,
   ListItem,
-} from "@material-tailwind/react";
+} from "@material-tailwind/react"
 import {
   HomeIcon,
   UserPlusIcon,
@@ -15,14 +15,16 @@ import {
   MagnifyingGlassCircleIcon,
   HeartIcon,
   DocumentIcon
-} from "@heroicons/react/24/solid";
-import { Chat } from "../../Chat";
-import { Friends } from "../../Friends";
-import Home from "../../Home";
-import CreatePosts from "../../CreatePosts";
-import { Profile } from "../../Profile";
+} from "@heroicons/react/24/solid"
+import Chat from "../../alt_Chat"
+import { Friends } from "../../Friends"
+import Home from "../../Home"
+import CreatePosts from "../../CreatePosts"
+import { Profile } from "../../Profile"
+import Logout from "../auth/Logout"
 import ChangeTag from "../../ChangeTag";
-import Logout from "../auth/Logout";
+
+
 
 
 export function NavbarWithSearch() {
@@ -33,7 +35,7 @@ export function NavbarWithSearch() {
   //   setPage(component);
   // };
 
-
+   
   const pages = [
     { title: "Home", component: <Home />, icon: HomeIcon, path: "/home" },
     { title: "Friends", component: <Friends />, icon: UserPlusIcon, path: "/friends" },
@@ -72,4 +74,4 @@ export function NavbarWithSearch() {
   );
 }
 
-export default NavbarWithSearch;
+export default NavbarWithSearch

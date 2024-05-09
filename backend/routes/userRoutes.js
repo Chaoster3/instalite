@@ -15,6 +15,8 @@ router.route('/changeEmail').put(authController.changeEmail);
 router.route('/getResetLink').get(authController.getResetLink);
 router.route('/resetPassword').post(authController.resetPassword);
 router.route('/checkIfLoggedIn').get(authController.checkIfLoggedIn); // returns true if the user is logged in
+router.route('/getUserId').get(authController.getUserId); // returns true if the user is logged in
+
 
 // User routes
 

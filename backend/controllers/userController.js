@@ -344,7 +344,7 @@ exports.getPostsMainPage = async (req, res) => {
   try {
     const yourPosts = await db.send_sql(
       `SELECT users.username AS username, posts.content AS content, posts.post_id AS post_id, posts.hashtag_ids AS hashtag_ids
-      FROM posts
+       FROM posts
         JOIN users ON posts.author_id = users.user_id
       WHERE posts.author_id = '${user_id}'`
     );

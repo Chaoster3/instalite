@@ -29,7 +29,7 @@ const messageComponent = ({ sender, message, avatar }) => {
   );
 };
 export function Chat() {
-    const [message, setMessage] = useState("");
+  const [message, setMessage] = useState("");
   const [messages, setMessages] = useState({});
   const [chats, setChats] = useState([
     {

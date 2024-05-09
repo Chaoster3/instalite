@@ -107,7 +107,7 @@ const Chat = () => {
 
 
                 console.log(response.data.data);
-                const newSocket = io('http://localhost:3005', {
+                const newSocket = io('http://3.90.82.97:3005', {
                     query: { userId: response.data.data },
                 });
                 setSocket(newSocket);

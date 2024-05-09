@@ -20,7 +20,6 @@ router.route('/getUserId').get(authController.getUserId); // returns true if the
 
 // User routes
 
-router.route('/getClosest').post(upload.single('profile_pic'), userController.getClosest);
 router.route('/changeActor').put(userController.changeActor); // need to verify that it works
 
 // get all the current user's friends

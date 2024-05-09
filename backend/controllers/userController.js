@@ -395,11 +395,11 @@ exports.getPostsMainPage = async (req, res) => {
         continue;
       }
 
-      const hashtag_ids = posts[i].hashtag_ids.split(',');
+      const hashtag_ids_array = JSON.parse(posts[i].hashtag_ids);
       const hashtag_names = [];
-      for (let j = 0; j < hashtag_ids.length; j++) {
+      for (let j = 0; j < hashtag_ids_array.length; j++) {
         const hashtag = await db.send_sql(
-          `SELECT name FROM hashtags WHERE hashtag_id = ${hashtag_ids[j]}`
+          `SELECT name FROM hashtags WHERE hashtag_id = ${hashtag_ids_array[j]}`
         );
         hashtag_names.push(hashtag[0].name);
       }

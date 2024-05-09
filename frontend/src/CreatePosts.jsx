@@ -28,6 +28,7 @@ const CreatePosts = () => {
   };
 
   const handleImageInput = (e) => {
+    console.log(e.target.file);
     setImage(e.target.file);
   };
 

@@ -957,7 +957,7 @@ exports.getFriendRecommendation = async (req, res) => {
         const parsed = Object.entries(JSON.parse(recs[0].friend_recommendation));
         parsed.sort((a, b) => a[1] - b[1]);
         friendRecommendation = entries.slice(0, 5).map(entry => entry[0]);
-      } 
+      }
     return res
       .status(HTTP_STATUS.SUCCESS)
       .json({ friendRecommendation });
@@ -1014,6 +1014,31 @@ exports.checkIfLikedPost = async (req, res) => {
         .status(HTTP_STATUS.SUCCESS)
         .json({ liked: false });
     }
+  } catch (err) {
+    console.log(err);
+    return res
+      .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+      .json({ error: 'Error querying database.' });
+  }
+}
+
+exports.getCurrentUser = async (req, res) => {
+  const { user_id } = req.session;
+
+  if (user_id == null) {
+    return res
+      .status(HTTP_STATUS.UNAUTHORIZED)
+      .json({ error: 'You must be logged in to view your username.' });
+  }
+
+  try {
+    const response = await db.send_sql(
+      `SELECT * FROM users WHERE user_id = ${user_id}`
+    );
+
+    return res
+      .status(HTTP_STATUS.SUCCESS)
+      .json({ response });
   } catch (err) {
     console.log(err);
     return res

@@ -80,13 +80,11 @@ exports.updateUserHashTags = async (req, res) => {
 
     console.log(hashtag_ids)
 
-    const sql = `UPDATE users SET interests = '${hashtag_ids}' WHERE user_id = '${user_id}'`;
+    const sql = `UPDATE users SET interests = '[${hashtag_ids}]' WHERE user_id = '${user_id}'`;
     console.log(sql)
 
     // Update the user's hashtags
-    await db.send_sql(
-      `UPDATE users SET interests = '${hashtag_ids}' WHERE user_id = '${user_id}'`
-    );
+    await db.send_sql(sql);
     return res.status(HTTP_STATUS.SUCCESS).json({ success: 'User hashtags updated successfully.' });
   } catch (err) {
     console.log(err);
@@ -96,7 +94,7 @@ exports.updateUserHashTags = async (req, res) => {
 
 exports.searchHashTags = async (req, res) => {
   const { q } = req.params;
-  
+
   try {
     const tags = await db.send_sql(
       `SELECT name FROM hashtags WHERE name LIKE '%${q}%'`
@@ -107,3 +105,23 @@ exports.searchHashTags = async (req, res) => {
     return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ error: 'Error querying database.' });
   }
 };
+
+
+exports.getTagNameFromID = async (req, res) => {
+  const { tagId } = req.params;
+
+  try {
+    const tag = await db.send_sql(
+      `SELECT name FROM hashtags WHERE hashtag_id = '${tagId}'`
+    );
+
+    if (tag.length == 0) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({ error: 'Tag does not exist.' });
+    }
+
+    return res.status(HTTP_STATUS.SUCCESS).json(tag[0]);
+  } catch (err) {
+    console.log(err);
+    return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ error: 'Error querying database.' });
+  }
+}

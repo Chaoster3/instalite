@@ -73,13 +73,13 @@ io.on('connection', socket => {
     });
 
     socket.on('chatMessage', async ({ chatID, userId, message }) => {
-        await chatController.saveMessage(chatID, userId, message);
+        const avatar = await chatController.saveMessageAndGetAvatar(chatID, userId, message);
         const newMessage = {
             chatID,
             senderId: userId,
             message,
             timestamp: new Date(),
-            avatar: "https://docs.material-tailwind.com/img/face-2.jpg"  // Example avatar
+            avatar: avatar 
         };
         io.to(chatID).emit('newMessage', newMessage);
     });
@@ -143,6 +143,7 @@ io.on('connection', socket => {
                     await chatController.addUserToSession(inviterId, sessionId, true); // Inviter is active by default; only add if creating new chat
                 }
                 await chatController.addUserToSession(inviteeId, sessionId, false); // Add with inactive flag
+
                 io.to(inviteeSocketId).emit('receiveInvite', {
                     sessionId: sessionId,
                     inviterId: inviterId,
@@ -162,14 +163,28 @@ io.on('connection', socket => {
 
     // Event to handle response to invitations
     socket.on('respondToInvite', async ({ sessionId, userId, accept }) => {
-        console.log(`HERE we have ${userId}`)
+        console.log(`HERE we have ${userId} and response ${accept}`)
         if (accept) {
             await chatController.activateUserInSession(userId, sessionId);
             socket.join(sessionId);
             handleJoinRoom(socket, sessionId, userId);
         } else {
+            console.log(`In refect`);
             await chatController.leaveRoom(userId, sessionId);
+            console.log(`User ${userId} is leaving left room ${sessionId}`);
             socket.to(sessionId).emit('userLeft', { userId, sessionId });
+            // Notify the leaving user as well
+            socket.emit('leftChat', { chatID: sessionId, success: true });
+
+            // Check if the session has no more active members
+            const activeMembers = await chatController.checkSessionMembers(sessionId);
+            console.log("REMAINING MEMBERS", activeMembers);
+            if (activeMembers.length === 1) {
+                await chatController.deleteSession(sessionId);
+                // Broadcast to everyone in the session that it's being deleted
+                io.to(sessionId).emit('leftChat', { chatID: sessionId, success: true });
+                console.log(`Chat session ${sessionId} deleted due to no active members.`);
+            }
         }
     });
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import io from 'socket.io-client'
 import { Avatar, Card, List, ListItem, ListItemSuffix } from "@material-tailwind/react"
 import { PencilSquareIcon } from "@heroicons/react/24/solid"
@@ -8,14 +8,15 @@ import { BACKEND_URL } from "./utils/constants";
 
 
 
-const messageComponent = ({ sender, message, avatar }) => {
+const messageComponent = ({ sender, message, avatar, username }) => {
+    console.log(`USERNAME IS ${username} and sender is ${sender} wiht message`)
     return (
         <div
-            className={`w-full p-5 flex flex-row ${sender === "self" && "justify-end"
+            className={`w-full p-5 flex flex-row ${sender === username && "justify-end"
                 } space-x-3`}
         >
             <div
-                className={`text-left max-w-[70%] p-3 rounded-md break-words ${sender === "self" ? "bg-blue-100" : "bg-gray-200"
+                className={`text-left max-w-[70%] p-3 rounded-md break-words ${sender === username ? "bg-blue-100" : "bg-gray-200"
                     }`}
             >
                 {message}
@@ -33,7 +34,15 @@ const Chat = () => {
     const [editing, setEditing] = useState(false);
     const [showCreateNewChat, setShowCreateNewChat] = useState(false);
     const [user_id, setUser] = useState("");
+    const [username, setUsername] = useState("");
+
     const [socket, setSocket] = useState(null);
+
+    const messagesRef = useRef(messages);
+
+    useEffect(() => {
+        messagesRef.current = messages;
+    }, [messages]);
 
 
 
@@ -69,6 +78,14 @@ const Chat = () => {
     }, [user_id]);
 
     useEffect(() => {
+        console.log(`The username has changed to: ${username}`);
+    }, [username]);
+
+    useEffect(() => {
+        console.log(`Messages changed to: ${messages.chatID}`);
+    }, [messages]);
+
+    useEffect(() => {
         const fetchUser = async () => {
             console.log("GETTING USER ID");
           try {
@@ -87,9 +104,17 @@ const Chat = () => {
             } else {
                 setUser("");
             }
+              const response2 = await axios.get(`${BACKEND_URL}/users/checkIfLoggedIn`);
+              if (response2.status === 200) {
+                  setUsername(response2.data.data.toString());
+                  console.log(response2.data.data.toString());
+              } else {
+                  setUsername("");
+              }
           } catch (error) {
             console.error("Error fetching user:", error);
               setUser("");
+              setUsername("");
           }
         }
     
@@ -165,11 +190,23 @@ const Chat = () => {
 
         socket.on('leftChat', (data) => {
             if (data.success) {
-                setChats(currentChats => currentChats.filter(chat => chat.chatID !== data.chatID));
+                const updatedChats = chats.filter(chat => chat.chatID !== data.chatID);
+
+                setChats(updatedChats);
+                console.log(`message id ${messages.chatID} ande here is the data id ${data.chatID}`);
+
+                if (messagesRef.current.chatID === data.chatID) {
+                    // Set messages to null or an empty object if the current chat is deleted
+                    console.log("Setting messages to null");
+                    setMessages({});
+                    setMessage('');
+                }
+
             } else {
                 console.error('Failed to leave chat:', data.error);
             }
         });
+
 
     };
 
@@ -274,6 +311,7 @@ const Chat = () => {
                                         sender: msg.sender,
                                         message: msg.message,
                                         avatar: msg.avatar,
+                                        username: username
                                     })}
                                 </div>
                             ))}

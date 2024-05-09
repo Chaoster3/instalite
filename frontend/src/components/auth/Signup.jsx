@@ -14,7 +14,12 @@ const axiosInstance = axios.create({
 function Signup() {
   const [isFirstPage, setIsFirstPage] = useState(true);
   const [profilePhoto, setProfilePhoto] = useState(null);
-  const [matches, setMatches] = useState({});
+  const [matches, setMatches] = useState(null);
+  const [topTenTagsNames, setTopTenTagsNames] = useState([]);
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchInput, setSearchInput] = useState('');
+  const [linked_nconst, setLinked_nconst] = useState('');
+  const [hashtags, setHashtags] = useState([]);
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -24,12 +29,9 @@ function Signup() {
     email: '',
     affiliation: '',
     birthday: '',
-    linked_nconst: '',
     profile_pic: null,
-    image_link: ''
+    image_link: '',
   });
-  const [interestNames, setInterestNames] = useState([])
-  const [topTenTagsNames, setTopTenTagsNames] = useState([]);
 
 
   const navigate = useNavigate();
@@ -52,6 +54,52 @@ function Signup() {
 
   }, []);
 
+  useEffect(() => {
+    if (searchInput) {
+      searchTags();
+    } else {
+      setSearchResults([]);
+    }
+  }, [searchInput]);
+
+  const handleSearchInputChange = (e) => {
+    setSearchInput(e.target.value);
+  };
+
+  const searchTags = async () => {
+    try {
+      console.log(searchInput);
+      const response = await axios.get(`${BACKEND_URL}/tags/searchHashTags/${searchInput}`);
+      if (response.status === 200) {
+        setSearchResults(response.data);
+      }
+    } catch (error) {
+      console.error('Error searching tags:', error);
+    }
+  };
+
+  const finalizeTag = async () => {
+    setSearchInput('');
+    setHashtags(prev => ([
+      ...prev,searchInput
+    ]));
+  };
+
+  const addSearchedTagToFinal = (tag) => {
+    if (!hashtags.includes(tag.name)) {
+      setHashtags(prev => ([
+        ...prev, tag.name
+      ]));
+    }
+  };
+  console.log(hashtags);
+
+  const removeFinalTag = (tagName) => {
+    setForm(prev => ([
+    prev.filter(tag => tag !== tagName)
+    ]));
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prevFormData) => ({
@@ -68,12 +116,8 @@ function Signup() {
   };
 
   const handlePress = (name, image) => {
-    setFormData((prevFormData) => ({
-      ...prevFormData,
-      ['linked_nconst']: image.substring(-4),
-      ['linked_name']: name
-    }));
-  }
+    setLinked_nconst(image)
+    };
 
   const handleSignup1 = async (e) => {
     e.preventDefault();
@@ -133,21 +177,16 @@ function Signup() {
     e.preventDefault();
 
     try {
-      const body = new FormData();
+      const body = {};
       for (const key in formData) {
-        body.append(key, formData[key]);
+        body.key = formData[key];
       }
-      //body.append('profilePoto', profilePhoto);
-      // const response = await axios.post(`${baseURL}/users/register`, body, {
-      //   headers: {
-      //     'Content-Type': 'multipart/form-data',
-      //   },
-      // });
+      body.interests = hashtags;
+      const trimmed = matches.map(match => match.slice(0, -4));
+      body.nconst_opions = trimmed;
+      body.linked_nconst = linked_nconst.slice(0, -4);
 
-      const response = await axiosInstance.post(`${BACKEND_URL}/users/register`, {
-        ...formData,
-        interestNames: interestNames
-      });
+      const response = await axiosInstance.post(`${BACKEND_URL}/users/register`, body);
 
       if (response.status === 201) {
         console.log('Sign Up successful');
@@ -166,14 +205,6 @@ function Signup() {
     }
   };
 
-
-  const addSearchedTagToFinal = (tag) => {
-    const isTagInFinalTags = interestNames.some(finalTag => finalTag.name === tag.name);
-
-    if (!isTagInFinalTags) {
-      setInterestNames([...interestNames, tag.name]);
-    }
-  };
 
   const inputFields = [
     { name: 'firstName', placeholder: 'First Name', type: 'text' },
@@ -263,14 +294,35 @@ function Signup() {
               </button>
             ))}
           </div>
-          <HashTagsSelector handleSubmit={handleSignup2} doneButtonText="Sign up" finalHashtagNames={interestNames} setFinalHashtagNames={setInterestNames} />
+          <div className="flex items-center justify-between mb-4">
+            <input
+              type="text"
+              placeholder="Search for tags"
+              onChange={handleSearchInputChange}
+              className="w-2/3 px-4 py-2 mr-2 border border-gray-300 rounded-md"
+            />
+            <button type="button" onClick={finalizeTag} className="px-4 py-2 text-white bg-blue-500 rounded-md">Search</button>
+          </div>
+          <div className="flex flex-wrap mb-4">
+            {searchResults.map((tag) => (
+              <button key={tag.id} type="button" onClick={() => addSearchedTagToFinal(tag)} className="border px-3 py-1 mr-2 mb-2 text-sm bg-gray-200 rounded-md hover:border-red-500">{tag.name}</button>
+            ))}
+          </div>
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold mb-2">Final Tags</h2>
+            <div>
+              {hashtags.map((tagName) => (
+                <button key={tagName} type="button" onClick={() => removeFinalTag(tagName)} className="border px-3 py-1 mr-2 mb-2 text-sm bg-gray-200 rounded-md hover:border-red-500">{tagName}</button>
+              ))}
+            </div>
+          </div>
         </>
         <div className="text-center text-2xl font-bold mb-4">
           Choose your Actor:
         </div>
         <div className="text-center text-2xl font-bold mb-4 flex flex-wrap justify-center">
           {matches && matches.map(match => (
-            <div key={match.name} onClick={() => handlePress(match.name, match.image)} className={`flex flex-col items-center justify-center p-4 rounded-lg cursor-pointer shadow-md mr-4 mb-4 ${formData.linked_name === match.name ? 'bg-gray-300' : 'bg-white'}`}>
+            <div key={match.name} onClick={() => handlePress(match.name, match.image)} className={`flex flex-col items-center justify-center p-4 rounded-lg cursor-pointer shadow-md mr-4 mb-4 ${linked_nconst === match.image ? 'bg-gray-300' : 'bg-white'}`}>
               <div className="text-lg font-bold mb-2">{match.name}</div>
               <img src={match.image} alt={match.name} className="h-40 w-40 rounded-lg mb-2" />
             </div>

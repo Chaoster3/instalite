@@ -16,8 +16,6 @@ const CreatePosts = () => {
   const [formStatus, setFormStatus] = useState("");
   const [searchInput, setSearchInput] = useState('');
   const [searchResults, setSearchResults] = useState([]);
-  const [newTagInput, setNewTagInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [image, setImage] = useState(null);
 
@@ -75,20 +73,17 @@ const CreatePosts = () => {
       const response = await axios.get(`${BACKEND_URL}/tags/searchHashTags/${searchInput}`);
       if (response.status === 200) {
         setSearchResults(response.data);
-      } else {
-        setErrorMessage('Error searching tags. Please try again later.');
       }
     } catch (error) {
       console.error('Error searching tags:', error);
-      setErrorMessage('Error searching tags. Please try again later.');
     }
   };
 
-  const createTag = async () => {
+  const finalizeTag = async () => {
         setSearchInput('');
         setForm(prevForm => ({
           ...prevForm,
-          hashtag_names: [...prevForm.hashtag_names, response.data.name]
+          hashtag_names: [...prevForm.hashtag_names, searchInput]
         }));
   };
 
@@ -140,19 +135,19 @@ const CreatePosts = () => {
               onChange={handleSearchInputChange}
               className="w-2/3 px-4 py-2 mr-2 border border-gray-300 rounded-md"
             />
-            <button type="button" onClick={searchTags} className="px-4 py-2 text-white bg-blue-500 rounded-md">Search</button>
+            <button type="button" onClick={finalizeTag} className="px-4 py-2 text-white bg-blue-500 rounded-md">Search</button>
           </div>
           {errorMessage && <p className="text-red-500">{errorMessage}</p>}
           <div className="flex flex-wrap mb-4">
             {searchResults.map((tag) => (
-              <button key={tag.id} type="button" onClick={() => addSearchedTagToFinal(tag)} className="px-4 py-2 mr-2 mb-2 text-sm bg-gray-200 rounded-md">{tag.name}</button>
+              <button key={tag.id} type="button" onClick={() => addSearchedTagToFinal(tag)} className="border px-3 py-1 mr-2 mb-2 text-sm bg-gray-200 rounded-md hover:border-red-500">{tag.name}</button>
             ))}
           </div>
           <div className="mb-4">
             <h2 className="text-lg font-semibold mb-2">Final Tags</h2>
             <div>
               {form.hashtag_names.map((tagName) => (
-                <button key={tagName} type="button" onClick={() => removeFinalTag(tagName)} className="px-4 py-2 mr-2 mb-2 text-sm bg-gray-200 rounded-md">{tagName}</button>
+                <button key={tagName} type="button" onClick={() => removeFinalTag(tagName)} className="border px-3 py-1 mr-2 mb-2 text-sm bg-gray-200 rounded-md hover:border-red-500">{tagName}</button>
               ))}
             </div>
           </div>

@@ -1,6 +1,5 @@
 const dbsingleton = require('../access/db_access.js');
 const bcrypt = require('bcrypt');
-const chroma = require('../basic-face-match-main/app.js');
 const aws = require('aws-sdk');
 const process = require('process');
 const path = require('path');
@@ -217,96 +216,7 @@ const s3 = new aws.S3({
 });
 
 // Note: Stores selfie in S3 and then returns 5 closest actors
-exports.getClosest = async (req, res) => {
-    console.log(req.body);
-    const {
-        username,
-        password,
-        firstName,
-        lastName,
-        email,
-        affiliation,
-        birthday,
-    } = req.body;
-    if (
-        username == null ||
-        password == null ||
-        firstName == null ||
-        lastName == null ||
-        email == null ||
-        affiliation == null ||
-        birthday == null
-    ) {
-        return res.status(400).json({
-            error:
-                'One or more of the fields you entered was empty, please try again.',
-        });
-    }
-    let count;
-    try {
-        const existing = await db.send_sql(
-            `SELECT * FROM users WHERE username = '${username}'`
-        );
-        count = await db.send_sql(
-            `SELECT COUNT(*) AS count FROM users`
-        );
-        if (existing.length > 0) {
-            return res.status(409).json({
-                error:
-                    'An account with this username already exists, please try again.',
-            });
-        }
-    } catch (err) {
-        console.log(err);
-        return res.status(500).json({ error: 'Error querying database' });
-    }
 
-    const file = req.file;
-    if (file == null) {
-        return res.status(400).json({ error: 'No image uploaded' });
-    }
-    fs.readFile(file.path, (err, data) => {
-        if (err) {
-            console.error('Error reading file:', err);
-            return res.status(500).send('Error uploading file');
-        } else {
-            console.log(file.path);
-            console.log(count);
-            const key = username + count[0]['count'];
-            const params = {
-                Bucket: process.env.S3_BUCKET_2,
-                Key: key,
-                Body: data
-            };
-            const responseData = {};
-            responseData.matches = [];
-            // Upload the file to S3
-            s3.upload(params, async (err, s3Data) => {
-                if (err) {
-                    console.error('Error uploading to S3:', err);
-                    return res.status(500).send('Error uploading file');
-                } else {
-                    responseData.image_link = s3Data.Location;
-                    try {
-                        for (var item of await chroma.findTopKMatches(req.collection, file.path, 5)) {
-                            for (var i = 0; i < item.ids[0].length; i++) {
-                                console.log(item.documents[0][i].slice(0, -3));
-                                const name = await db.send_sql(
-                                    `SELECT primaryName FROM names WHERE nconst = '${item.documents[0][i].slice(0, -4)}'`
-                                );
-                                responseData['matches'].push({name: name[0]['primaryName'], image: item.documents[0][i]});
-                            }
-                        }
-                        return res.status(200).json(responseData);
-                    } catch (err) {
-                        console.log(err);
-                        return res.status(500).json({ error: 'Error with ChromaDB' });
-                    }
-                }
-            });
-        }
-    });
-};
 
 exports.getAllFriends = async (req, res) => {
   const { user_id } = req.session;

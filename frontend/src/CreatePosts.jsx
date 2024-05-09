@@ -38,6 +38,7 @@ const CreatePosts = () => {
       body.append("image", image);
       body.append("content", form.content);
       body.append("hashtag_names", form.hashtag_names);
+      console.log(image);
       const response = await axiosInstance.post(
         `${BACKEND_URL}/posts/createPost`,
         body

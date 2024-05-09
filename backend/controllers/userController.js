@@ -22,6 +22,8 @@ exports.register = async function (req, res) {
         birthday,
         image_link,
         linked_nconst,
+        interests,
+        nconst_options,
     } = req.body;
     if (
         username == null ||
@@ -32,7 +34,9 @@ exports.register = async function (req, res) {
         affiliation == null ||
         birthday == null ||
         image_link == null ||
-        linked_nconst == null
+        linked_nconst == null ||
+      interests == null ||
+      nconst_options == null
     ) {
         return res.status(400).json({
             error:
@@ -59,8 +63,8 @@ exports.register = async function (req, res) {
             });
         });
         await db.send_sql(
-            `INSERT INTO users (username, hashed_password, first_name, last_name, email, affiliation, birthday, image_link, linked_nconst) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [username,hashed, firstName, lastName, email, affiliation, birthday, image_link, linked_nconst]
+            `INSERT INTO users (username, hashed_password, first_name, last_name, email, affiliation, birthday, image_link, linked_nconst, interests, nconst_options) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [username,hashed, firstName, lastName, email, affiliation, birthday, image_link, linked_nconst, interests, nconst_options]
         );
         const found = await db.send_sql(
             `SELECT user_id FROM users WHERE username = '${username}'`

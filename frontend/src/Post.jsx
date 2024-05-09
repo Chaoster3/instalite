@@ -40,6 +40,7 @@ const Post = ({ post }) => {
         setLikedPost(response.status === 200);
       } catch (error) {
         console.error('Error fetching liked posts:', error);
+        setLikedPost(false);
       }
     };
     checkIfLikedPost();
@@ -95,7 +96,7 @@ const Post = ({ post }) => {
         <button className={`text-sm font-semibold py-1 px-3 -lg ${likedPost ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'}`} onClick={() => likedPost ? handleUnlikePost(post.post_id) : handleLikePost(post.post_id)}>
           {likedPost ? 'Unlike' : 'Like'}
         </button>
-      </div>rounded
+      </div>
       <hr className="my-6" />
       <div>
         <h2 className="text-xl font-semibold mb-2">Comments</h2>
@@ -130,7 +131,6 @@ const Post = ({ post }) => {
       </div>
     </div>
   );
-
 };
 
 export default Post;

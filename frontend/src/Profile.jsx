@@ -93,6 +93,10 @@ export function Profile() {
     navigate("/changeTag")
   }
 
+  const handleChangeActor = async () => {
+    navigate("/changeActor")
+  }
+
 
   return (
     <div className="flex flex-col h-screen overflow-y-auto">
@@ -116,8 +120,11 @@ export function Profile() {
               <Button variant="contained" onClick={handleChangePassword} className="mb-5 mr-5">
                 Change Password
               </Button>
-              <Button variant="contained" onClick={handleInterests} className="mb-5">
+              <Button variant="contained" onClick={handleInterests} className="mb-5 mr-5">
                 Change Interests
+              </Button>
+              <Button variant="contained" onClick={handleChangeActor} className="mb-5">
+                Change Actor
               </Button>
             </div>
             <div className="text-2xl"> <strong>Username:</strong>{currentUser.username}</div>

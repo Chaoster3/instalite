@@ -4,7 +4,7 @@ Sam Ngiam (sngiam@seas.upenn.edu), Matthew Kuo (mkuo@seas.upenn.edu), Ethan Yu (
 
 Features Implemented:
 
--Profile creation and user log in
+-Profile creation and user log in  
 -Profile editing
 -Posting, commenting, and liking
 -Feed and friend recommendations

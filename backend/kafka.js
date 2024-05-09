@@ -30,16 +30,18 @@ const getMessages = async () => {
                 const username = 'twitter:' + info.author_id
                 try {
                     const hashtag_ids = [];
-                    if (hashtags) {
+                    if (hashtags != null) {
+                        console.log(hashtags);
                         for (let i = 0; i < hashtags.length; i++) {
+                            console.log(hashtags[i]);
                             const data = await db.send_sql(
-                                `SELECT * FROM hashtags WHERE name = '${hashtags[i]}'`
+                                `SELECT * FROM hashtags WHERE name = ?`, [hashtags[i]]
                             );
                             if (data.length === 0) {
                                 const q = `INSERT INTO hashtags (name, count) VALUES (?, 1)`;
                                 await db.send_sql(q, [hashtag_ids[i]]);
                                 const info = await db.send_sql(
-                                    `SELECT * FROM hashtags WHERE name = '${hashtags[i]}'`
+                                    `SELECT * FROM hashtags WHERE name = ?`, [hashtags[i]]
                                 );
                                 console.log(info);
                                 hashtag_ids.push(info[0].hashtag_id);
@@ -70,6 +72,7 @@ const getMessages = async () => {
                 }
                 const username = info.source_site + ':' + info.username
                 const hashtag_ids = [];
+                console.log(hashtags);
                 for (let i = 0; i < hashtags.length; i++) {
                     const data = await db.send_sql(
                         `SELECT * FROM hashtags WHERE name = '${hashtags[i]}'`

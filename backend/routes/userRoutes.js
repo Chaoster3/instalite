@@ -27,8 +27,12 @@ router.route('/getPostsMainPage').get(userController.getPostsMainPage);
 router.route('/getPostsProminentFigures').get(userController.getPostsProminentFigures); // TODO: implement this
 
 //router.route('/addFriends').post(userController.addFriends);
-router.route('/removeFriends').post(userController.removeFriends);
+router.route('/removeFriend').post(userController.removeFriend);
 router.route('/sendFriendRequest').post(userController.sendFriendRequest);
+router.route('/declineRequest').post(userController.declineRequest);
+
+router.route('/acceptRequest').post(userController.acceptRequest);
+
 
 router.route('/getUsernameFromID/:userId').get(userController.getUsernameFromID);
 
@@ -40,6 +44,8 @@ router.route('/checkIfLikedPost/:postId').get(userController.checkIfLikedPost);
 
 // Friend recommendation
 router.route('/getFriendRecommendation').get(userController.getFriendRecommendation);
+router.route('/getFriendRequests').get(userController.getFriendRequests);
+
 
 
 module.exports = router;

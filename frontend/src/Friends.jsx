@@ -24,10 +24,11 @@ export function Friends() {
       const response = await axios.get(`${BACKEND_URL}/users/getFriendRequests`);
       setRequests(response.data);
     } catch (error) {
-      setFriends([]);
-      console.error('Error fetching friends:', error);
+      setRequests([]);
+      console.error('Error fetching friend requests:', error);
     }
   };
+
 
   const getFriendRecommendations = async () => {
     try {
@@ -52,9 +53,9 @@ export function Friends() {
     return () => clearInterval(intervalId);
   }, []);
 
-  const sendRequest = async (username) => {
+  const sendRequest = async (recipient_username) => {
     try {
-      const body = { username };
+      const body = { recipient_username };
       await axios.post(`${BACKEND_URL}/users/sendFriendRequest`, body);
       alert('Friend request sent');
     } catch (error) {
@@ -71,11 +72,13 @@ export function Friends() {
   const accept = async (sender_username) => {
     const body = { sender_username };
     await axios.post(`${BACKEND_URL}/users/acceptRequest`, body);
+    getRequests();
   };
 
   const decline = async (sender_username) => {
     const body = { sender_username };
     await axios.post(`${BACKEND_URL}/users/declineRequest`, body);
+    getRequests();
   };
 
 
@@ -95,7 +98,7 @@ export function Friends() {
   const removeFriend = async (friendId) => {
     console.log("Trying to remove friend with id", friendId)
     try {
-      await axios.post(`${BACKEND_URL}/users/removeFriend/${friendId}`);
+      await axios.post(`${BACKEND_URL}/users/removeFriend/`, {friendId});
       getFriends();
       getFriendRecommendations();
     } catch (error) {

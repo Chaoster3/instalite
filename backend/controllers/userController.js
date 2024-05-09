@@ -6,6 +6,7 @@ const process = require('process');
 const path = require('path');
 const fs = require('fs');
 const HTTP_STATUS = require('../utils/httpStatus');
+const e = require('express');
 
 const db = dbsingleton;
 
@@ -58,7 +59,8 @@ exports.register = async function (req, res) {
             });
         });
         await db.send_sql(
-            `INSERT INTO users (username, password, firstName, lastName, email, affiliation, birthday, image_link, actor, actor_id) VALUES ('${username}', '${hashed}', '${firstName}', '${lastName}', '${email}', '${affiliation}', '${birthday}', '${image_link}', '${linked_name}', '${linked_nconst}')`
+            `INSERT INTO users (username, hashed_password, first_name, last_name, email, affiliation, birthday, image_link, linked_nconst) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [username,hashed, firstName, lastName, email, affiliation, birthday, image_link, linked_nconst]
         );
         const found = await db.send_sql(
             `SELECT user_id FROM users WHERE username = '${username}'`
@@ -401,12 +403,13 @@ exports.getFriendRequests = async (req, res) => {
     }
 
     try {
-        const info = db.send_sql(
+        const info = await db.send_sql(
             `SELECT users.username AS username
             FROM friend_requests
             JOIN users ON friend_requests.sender = users.user_id
             WHERE friend_requests.recipient = '${user_id}'`
         );
+        console.log(info);
         return res.status(HTTP_STATUS.SUCCESS).json(info);
     } catch (err) {
         console.log(err);
@@ -418,7 +421,7 @@ exports.getFriendRequests = async (req, res) => {
 
 exports.sendFriendRequest = async (req, res) => {
     const { user_id } = req.session;
-    const { friend_username } = req.body;
+    const { recipient_username } = req.body;
 
     if (user_id == null) {
         return res
@@ -426,19 +429,20 @@ exports.sendFriendRequest = async (req, res) => {
             .json({ error: 'You must be logged in to send a friend request.' });
     }
 
-    if (friend_username == null) {
+    if (recipient_username == null) {
         return res
             .status(HTTP_STATUS.BAD_REQUEST)
             .json({ error: 'Friend username cannot be empty.' });
     }
 
     try {
-        const info = db.send_sql(
-            `SELECT user_id FROM users WHERE username = '${friend_username}'`
+        const info = await db.send_sql(
+            `SELECT user_id FROM users WHERE username = '${recipient_username}'`
         );
         if (info.length == 0) {
             return res.status(HTTP_STATUS.BAD_REQUEST).json({error: 'Username does not exist'});
         } else {
+            console.log(info);
             const friend_id = info[0].user_id;
             const p1 = db.send_sql(
                 `SELECT * FROM friends WHERE follower = '${user_id}' AND followed = '${friend_id}'`
@@ -453,16 +457,16 @@ exports.sendFriendRequest = async (req, res) => {
                     .json({ error: 'You are already friends with this user.' });
             }
             if (check2.length > 0) {
-                await db.send_sql(
-                    `INSERT INTO friend_requests (recipient, sender) VALUES (${friend_id}, ${user_id})`
-                );
                 return res
-                    .status(HTTP_STATUS.SUCCESS)
-                    .json({ success: 'Friend added successfully.' });
+                  .status(HTTP_STATUS.CONFLICT)
+                  .json({ error: 'A friend request to this user is already pending.' });
             } else {
-                return res
-                    .status(HTTP_STATUS.CONFLICT)
-                    .json({ error: 'A friend request to this user is already pending.' });
+              await db.send_sql(
+                `INSERT INTO friend_requests (recipient, sender) VALUES (${friend_id}, ${user_id})`
+              );
+              return res
+                .status(HTTP_STATUS.SUCCESS)
+                .json({ success: 'Friend added successfully.' });
             }
         }
     } catch (err) {
@@ -476,7 +480,7 @@ exports.sendFriendRequest = async (req, res) => {
 exports.declineRequest = async (req, res) => {
     const { user_id } = req.session;
     const { sender_username } = req.body;
-
+    console.log('hi');
     if (user_id == null) {
         return res
             .status(HTTP_STATUS.UNAUTHORIZED)
@@ -560,6 +564,22 @@ exports.acceptRequest = async (req, res) => {
                 `DELETE FROM friend_requests WHERE (sender = ${friend_id} AND recipient = ${user_id}) OR (sender = ${user_id} AND recipient = ${friend_id})`
             );
             await Promise.all([p1, p2]);
+            const remover1 = await db.send_sql(`SELECT friend_recommendation from users WHERE user_id = '${user_id}'`);
+            const a1 = remover1[0].friend_recommendation;
+            if (a1) {
+              a2 = JSON.parse(a1);
+              a2[friend_id] = null;
+              a3 = JSON.stringify(a2);
+              await db.send_sql(`UPDATE users SET friend_recommendation =  ? WHERE user_id = ?`, [a3, user_id]);
+            }
+            const remover2 = await db.send_sql(`SELECT friend_recommendation from users WHERE user_id = '${friend_id}'`);
+            const b1 = remover2[0].friend_recommendation;
+            if (b1) {
+              b2 = JSON.parse(b1);
+              b2[user_id] = null;
+              b3 = JSON.stringify(b2);
+              await db.send_sql(`UPDATE users SET friend_recommendation =  ? WHERE user_id = ?`, [b3, friend_id]);
+            }
             return res
                 .status(HTTP_STATUS.SUCCESS)
                 .json({ success: 'Friend added successfully.' });
@@ -577,10 +597,64 @@ exports.acceptRequest = async (req, res) => {
   }
 }
 
-exports.removeFriends = async (req, res) => {
+exports.acceptRequest = async (req, res) => {
   const { user_id } = req.session;
-  const { friendId } = req.params;
+  const { sender_username } = req.body;
 
+  if (user_id == null) {
+    return res
+      .status(HTTP_STATUS.UNAUTHORIZED)
+      .json({ error: 'You must be logged in to send a friend.' });
+  }
+
+  if (sender_username == null) {
+    return res
+      .status(HTTP_STATUS.BAD_REQUEST)
+      .json({ error: 'Sender cannot be empty.' });
+  }
+
+  try {
+    const info = await db.send_sql(
+      `SELECT user_id FROM users WHERE username = '${sender_username}'`
+    );
+    if (info.length == 0) {
+      return res
+        .status(HTTP_STATUS.BAD_REQUEST)
+        .json({ success: 'Username does not exist.' });
+    } else {
+      const friend_id = info[0].user_id;
+      const check = await db.send_sql(
+        `SELECT * FROM friend_requests WHERE sender = '${friend_id}' AND recipient = '${user_id}'`
+      );
+      if (check.length > 0) {
+        const p1 = db.send_sql(
+          `INSERT INTO friends (follower, followed) VALUES (${user_id}, ${friend_id}), (${friend_id}, ${user_id})`
+        );
+        const p2 = db.send_sql(
+          `DELETE FROM friend_requests WHERE (sender = ${friend_id} AND recipient = ${user_id}) OR (sender = ${user_id} AND recipient = ${friend_id})`
+        );
+        await Promise.all([p1, p2]);
+        return res
+          .status(HTTP_STATUS.SUCCESS)
+          .json({ success: 'Friend added successfully.' });
+      } else {
+        return res
+          .status(HTTP_STATUS.UNAUTHORIZED)
+          .json({ error: 'You can only add friends you have recieved friend requests from.' });
+      }
+    }
+  } catch (err) {
+    console.log(err);
+    return res
+      .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+      .json({ error: 'Error querying database.' });
+  }
+}
+
+exports.removeFriend = async (req, res) => {
+  const { user_id } = req.session;
+  const { friendId } = req.body;
+  console.log(friendId);
   if (user_id == null) {
     return res
       .status(HTTP_STATUS.UNAUTHORIZED)
@@ -595,9 +669,10 @@ exports.removeFriends = async (req, res) => {
 
   try {
     //// TODO: Might need to go both ways
-    const p1 = `DELETE FROM friends WHERE follower = '${user_id}' AND followed = '${friend_id}'`;
-    const p2 = `DELETE FROM friends WHERE followed = '${user_id}' AND follower = '${friend_id}'`;
+    const p1 = db.send_sql(`DELETE FROM friends WHERE follower = '${user_id}' AND followed = '${friendId}'`);
+    const p2 = db.send_sql(`DELETE FROM friends WHERE followed = '${user_id}' AND follower = '${friendId}'`);
     await Promise.all([p1, p2]);
+    console.log('reach')
     return res
       .status(HTTP_STATUS.SUCCESS)
       .json({ success: 'Friend removed successfully.' });
@@ -825,33 +900,42 @@ exports.getFriendRecommendation = async (req, res) => {
       .json({ error: 'You must be logged in to view friend recommendations.' });
   }
 
-  try {
-    const currentFriends = await db.send_sql(
-      `SELECT followed FROM friends WHERE follower = ${user_id}`
-    );
+  // try {
+  //   const currentFriends = await db.send_sql(
+  //     `SELECT followed FROM friends WHERE follower = ${user_id}`
+  //   );
 
-    const friendOfFriends = await db.send_sql(`
-      SELECT DISTINCT f2.followed AS followed
-      FROM friends f1
-        JOIN friends f2 ON f1.followed = f2.follower
-      WHERE f1.follower = ${user_id} AND f2.followed <> ${user_id}
-    `);
+  //   const friendOfFriends = await db.send_sql(`
+  //     SELECT DISTINCT f2.followed AS followed
+  //     FROM friends f1
+  //       JOIN friends f2 ON f1.followed = f2.follower
+  //     WHERE f1.follower = ${user_id} AND f2.followed <> ${user_id}
+  //   `);
 
-    // Select people from friendOfFriends that aren't in currentFriends
-    const friends = currentFriends.map(friend => friend.followed);
-    const users = friendOfFriends.map(friend => friend.followed);
+  //   // Select people from friendOfFriends that aren't in currentFriends
+  //   const friends = currentFriends.map(friend => friend.followed);
+  //   const users = friendOfFriends.map(friend => friend.followed);
 
-    var friendRecommendationIds = users.filter(user => !friends.includes(user));
+  //   var friendRecommendationIds = users.filter(user => !friends.includes(user));
 
-    // Get the usernames of the friend recommendations
-    var friendRecommendation = [];
-    for (let i = 0; i < friendRecommendationIds.length; i++) {
-      const username = await db.send_sql(
-        `SELECT username, user_id FROM users WHERE user_id = ${friendRecommendationIds[i]}`
+  //   // Get the usernames of the friend recommendations
+  //   var friendRecommendation = [];
+  //   for (let i = 0; i < friendRecommendationIds.length; i++) {
+  //     const username = await db.send_sql(
+  //       `SELECT username, user_id FROM users WHERE user_id = ${friendRecommendationIds[i]}`
+  //     );
+  //     friendRecommendation.push(username[0]);
+  //   }
+    try {
+      let friendRecommendation = [];
+      const recs = await db.send_sql(
+        `SELECT friend_recommendation FROM users WHERE user_id = ${user_id}`
       );
-      friendRecommendation.push(username[0]);
-    }
-
+      if (recs[0].friend_recommendation) {
+        const parsed = Object.entries(JSON.parse(recs[0].friend_recommendation));
+        parsed.sort((a, b) => a[1] - b[1]);
+        friendRecommendation = entries.slice(0, 5).map(entry => entry[0]);
+      } 
     return res
       .status(HTTP_STATUS.SUCCESS)
       .json({ friendRecommendation });

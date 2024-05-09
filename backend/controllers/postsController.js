@@ -71,9 +71,8 @@ exports.createPost = async (req, res) => {
           }
         })
     }
-    await db.send_sql(
-      `INSERT INTO posts (author_id, content, hashtag_ids) VALUES ('${req.session.user_id}', '${content}', '${hashtag_ids}')`
-    );
+    const q = `INSERT INTO posts (author_id, content, hashtag_ids) VALUES (?, ?, ?)`;
+    await db.insert_items(q, [req.session.user_id, content, JSON.stringify(hashtag_ids)])
     const latest = await db.send_sql(
       `SELECT MAX(post_id) as latest FROM posts`
     );

@@ -19,6 +19,7 @@ exports.register = async function (req, res) {
     birthday,
     linked_nconst,
     interestNames,
+    image_id
   } = req.body;
   console.log(req);
 
@@ -30,7 +31,9 @@ exports.register = async function (req, res) {
     lastName == null ||
     email == null ||
     affiliation == null ||
-    birthday == null
+    birthday == null ||
+    image_id == null || 
+    linked_nconst == null
   ) {
     console.log('one or more fields were empty');
     return res.status(400).json({

@@ -73,8 +73,8 @@ async function create_tables(db) {
       birthday DATE, \
       interests JSON, \
       logged_in BOOLEAN DEFAULT FALSE, \
-      rank_distribution BLOB, \
-      friend_recommendation BLOB, \
+      rank_distribution JSON, \
+      friend_recommendation JSON, \
       PRIMARY KEY(user_id), \
       FOREIGN KEY(linked_nconst) REFERENCES names(nconst) \
     );'

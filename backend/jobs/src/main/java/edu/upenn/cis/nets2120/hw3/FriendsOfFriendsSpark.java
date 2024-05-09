@@ -225,15 +225,15 @@ public class FriendsOfFriendsSpark {
 
             List<Tuple2<String, String>> edges = new ArrayList<>();
             if (interests != null && !interests.isEmpty() && !interests.equals("[]") && !interests.equals(",")) {
-                // for (String hashtag : interests.substring(1, interests.length() -
-                // 1).split(",")) {
-                // edges.add(new Tuple2<>(user_id_str, "hash" + hashtag));
-                // edges.add(new Tuple2<>("hash" + hashtag, user_id_str));
-                // }
-                for (String hashtag : interests.split(",")) {
-                    edges.add(new Tuple2<>(user_id_str, "hash" + hashtag));
-                    edges.add(new Tuple2<>("hash" + hashtag, user_id_str));
+                for (String hashtag : interests.substring(1, interests.length() -
+                1).split(",")) {
+                edges.add(new Tuple2<>(user_id_str, "hash" + hashtag));
+                edges.add(new Tuple2<>("hash" + hashtag, user_id_str));
                 }
+                // for (String hashtag : interests.split(",")) {
+                //     edges.add(new Tuple2<>(user_id_str, "hash" + hashtag));
+                //     edges.add(new Tuple2<>("hash" + hashtag, user_id_str));
+                // }
             }
             edges.add(new Tuple2<>("shadow" + user_id, user_id_str));
             return edges.iterator();

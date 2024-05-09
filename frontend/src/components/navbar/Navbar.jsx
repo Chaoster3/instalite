@@ -21,6 +21,7 @@ import { Friends } from "../../Friends"
 import Home from "../../Home"
 import CreatePosts from "../../CreatePosts"
 import { Profile } from "../../Profile"
+import Search from "../../Search"
 import Logout from "../auth/Logout"
 import ChangeTag from "../../ChangeTag";
 
@@ -42,6 +43,7 @@ export function NavbarWithSearch() {
     { title: "Chat", component: <Chat />, icon: ChatBubbleLeftRightIcon, path: "/chat" },
     { title: "Create Posts", component: <CreatePosts />, icon: DocumentIcon, path: "/create_posts" },
     { title: "Profile", component: <Profile />, icon: HeartIcon, path: "/change_tags" },
+    { title: "Search", component: <Search />, icon: HeartIcon, path: "/search" },
     { title: "Logout", component: <Logout />, icon: HeartIcon, path: "/logout" }
   ];
 

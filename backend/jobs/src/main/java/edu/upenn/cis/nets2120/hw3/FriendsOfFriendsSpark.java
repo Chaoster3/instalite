@@ -160,6 +160,8 @@ public class FriendsOfFriendsSpark {
             // Collect the results to the driver node
             List<Tuple2<String, Map<String, Double>>> userDistList = userDistributions.collect();
             List<Tuple2<String, Map<String, Double>>> friendRecList = friendRecommendations.collect();
+            System.out.println(userDistList);
+            System.out.println(friendRecList);
 
             // Open a single connection
             try (Connection connection = DriverManager.getConnection(Config.DATABASE_CONNECTION,

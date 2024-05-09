@@ -203,34 +203,64 @@ exports.changeEmail = async (req, res) => {
 }
 
 exports.changeActor = async (req, res) => {
-    const { user_id } = req.session;
-    const { img_id } = req.body;
+  const { linked_nconst } = req.body;
+  const { user_id } = req.session;
 
-    // Update the img_id field in the users table
-    try {
-        // Check if the user exists
-        const user = await db.send_sql(
-            `SELECT * FROM users WHERE user_id = ${user_id}`
-        );
-        if (user.length === 0) {
-            return res
-        .status(HTTP_STATUS.NOT_FOUND)
-        .json({ error: 'User not found.' });
-        }
+  if (linked_nconst == null) {
+    return res.status(400).json({ error: 'Actor cannot be empty.' });
+  }
 
-        await db.send_sql(
-            `UPDATE users SET img_id = ${img_id} WHERE user_id = ${user_id}`
-        );
-        return res
+  if (user_id == null) {
+    return res.status(401).json({ error: 'You must be logged in to change your actor.' });
+  }
+
+  try {
+    await db.send_sql(
+      `UPDATE users SET linked_nconst = '${linked_nconst}' WHERE user_id = ${user_id}`
+    );
+    return res.status(200).json({ success: 'Actor changed successfully.' });
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({ error: 'Error querying database.' });
+  }
+}
+
+exports.get5ClosestActor = async (req, res) => {
+  const { user_id } = req.session;
+
+  if (user_id == null) {
+    return res
+      .status(HTTP_STATUS.UNAUTHORIZED)
+      .json({ error: 'You must be logged in to view your actor.' });
+  }
+
+  try {
+    const actor_nconst = await db.send_sql(
+      `SELECT nconst_options FROM users WHERE user_id = ${user_id}`
+    );
+
+    // Convert actor_nconst to an array
+    const nconst_ids = JSON.parse(actor_nconst[0].nconst_options);
+
+    const returnedActorObjects = []
+    for (let i = 0; i < nconst_ids.length; i++) {
+      const actor = await db.send_sql(
+        `SELECT * FROM names WHERE nconst = '${nconst_ids[i]}'`
+      );
+
+      returnedActorObjects.push(actor[0]);
+    }
+
+    return res
       .status(HTTP_STATUS.SUCCESS)
-      .json({ success: 'Actor changed successfully.' });
-    } catch (err) {
-        console.log(err);
-        return res
+      .json({ returnedActorObjects });
+  } catch (err) {
+    console.log(err);
+    return res
       .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
       .json({ error: 'Error querying database.' });
-    }
-};
+  }
+}
 
 const s3 = new aws.S3({
     region: process.env.S3_REGION
@@ -397,14 +427,14 @@ exports.getPostsMainPage = async (req, res) => {
 
   try {
     const yourPosts = await db.send_sql(
-      `SELECT users.username AS username, posts.content AS content, posts.post_id AS post_id, posts.hashtag_ids AS hashtag_ids
+      `SELECT users.username AS username, posts.content AS content, posts.post_id AS post_id, posts.hashtag_ids AS hashtag_ids, posts.image_url AS image_url
        FROM posts
         JOIN users ON posts.author_id = users.user_id
       WHERE posts.author_id = '${user_id}'`
     );
 
     const friendsPosts = await db.send_sql(
-      `SELECT users.username AS username, posts.content AS content, posts.post_id AS post_id, posts.hashtag_ids AS hashtag_ids
+      `SELECT users.username AS username, posts.content AS content, posts.post_id AS post_id, posts.hashtag_ids AS hashtag_ids, posts.image_url AS image_url
       FROM posts
         JOIN users ON posts.author_id = users.user_id
       WHERE author_id IN (SELECT followed from friends WHERE follower = '${user_id}')`
@@ -1002,7 +1032,6 @@ exports.getFriendRecommendation = async (req, res) => {
 }
 
 exports.checkIfLikedPost = async (req, res) => {
-    console.log("hello");
   const { postId } = req.params;
   const { user_id } = req.session;
 
@@ -1043,7 +1072,7 @@ exports.checkIfLikedPost = async (req, res) => {
         .json({ liked: true });
     } else {
       return res
-        .status(HTTP_STATUS.SUCCESS)
+        .status(HTTP_STATUS.NOT_FOUND)
         .json({ liked: false });
     }
   } catch (err) {

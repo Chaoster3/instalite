@@ -27,6 +27,7 @@ const Post = ({ post }) => {
         console.log("Post liked successfully");
       } else {
         console.error("Error liking post");
+        setLikedPost(false)
       }
     } catch (error) {
       console.error("Error liking post:", error);
@@ -37,6 +38,7 @@ const Post = ({ post }) => {
     const checkIfLikedPost = async () => {
       try {
         const response = await axios.get(`${BACKEND_URL}/users/checkIfLikedPost/${post.post_id}`, { withCredentials: true });
+        console.log(post.image_url);
         setLikedPost(response.status === 200);
       } catch (error) {
         console.error('Error fetching liked posts:', error);
@@ -84,24 +86,26 @@ const Post = ({ post }) => {
   }, []);
 
   return (
-    <div className="border rounded-md p-4 mb-4 shadow-md">
+    <div className="border rounded-md p-4 mb-4 shadow-md bg-white">
       <div>
-        <h2 className="text-xl font-semibold mb-2">Post</h2>
-        <p className="text-gray-600 mb-2">Author: {post.username}</p>
-        <p className="mb-4">Content: <span className="whitespace-pre-line">{post.content}</span></p>
+        <p className="text-gray-600 mb-2 text-left"> {post.username}</p>
+        <p className="mb-4">Content: <span className="whitespace-pre-line">{post.content} </span></p>
+        {post.image_url && (
+          <img src={post.image_url}/>
+        )}
         {post.hashtag_names.length > 0 && (
           <p className="text-gray-600 mb-2">Hashtags: {post.hashtag_names.join(', ')}</p>
         )}
-        <button className={`text-sm font-semibold py-1 px-3 -lg ${likedPost ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'}`} onClick={() => likedPost ? handleUnlikePost(post.post_id) : handleLikePost(post.post_id)}>
+        <button className={`text-sm font-semibold py-1 px-3 ${likedPost ? 'bg-red-500' : 'bg-blue-500'} text-white rounded-md hover:bg-opacity-75`} onClick={() => likedPost ? handleUnlikePost(post.post_id) : handleLikePost(post.post_id)}>
           {likedPost ? 'Unlike' : 'Like'}
         </button>
-      </div>rounded
+      </div>
       <hr className="my-6" />
       <div>
         <h2 className="text-xl font-semibold mb-2">Comments</h2>
         <ul>
           {existingComments.map((comment, index) => (
-            <li key={index} className="border rounded-md p-3 mb-4"> {/* Added border and rounded corners */}
+            <li key={index} className="border rounded-md p-3 mb-4">
               <p className="text-gray-600 mb-2">Content: {comment.content}</p>
               <p className="text-gray-600 mb-2">Author: {comment.author}</p>
               {comment.hashtag_ids && (
@@ -119,12 +123,6 @@ const Post = ({ post }) => {
             onChange={(e) => setCommentText(e.target.value)}
             placeholder="Enter your comment"
             className="border rounded-md p-2 w-full mb-2"
-          />
-          <HashTagsSelector
-            handleSubmit={handleCommentSubmit}
-            doneButtonText="Create Comment"
-            finalHashtagNames={commentHashtagNames}
-            setFinalHashtagNames={setCommentHashtagNames}
           />
         </div>
       </div>

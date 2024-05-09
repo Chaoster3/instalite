@@ -79,7 +79,8 @@ exports.register = async function (req, res) {
                 }
             });
         });
-        const hashtag_ids = interests.map(interest => exports.getTagId(interest));
+        const h_ids = interests.map(interest => exports.getTagId(interest));
+        const hashtag_ids = await Promise.all(h_ids);
         await db.send_sql(
             `INSERT INTO users (username, hashed_password, first_name, last_name, email, affiliation, birthday, image_link, linked_nconst, interests, nconst_options) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [username,hashed, firstName, lastName, email, affiliation, birthday, image_link, linked_nconst, JSON.stringify(hashtag_ids), JSON.stringify(nconst_options)]

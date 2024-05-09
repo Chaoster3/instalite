@@ -5,7 +5,6 @@ const commentsRouter = require('./routes/commentsRoutes');
 const tagsRouter = require('./routes/tagsRoutes');
 
 const cors = require('cors');
-
 const chroma = require('./basic-face-match-main/app.js');
 const path = require('path');
 const app = express();
@@ -13,25 +12,13 @@ const session = require('express-session');
 const signature = require('cookie-signature')
 const kafka = require('./kafka.js')
 
-app.use(express.json());
-app.use(cors({ credentials: true, origin: true }));
+let collection;
 
+// chroma.startChroma().then(col => collection = col);
 
-const sessionMiddleWear = session({
-  secret: 'nets2120_insecure',
-  saveUninitialized: true,
-  cookie: {
-    httpOnly: false,
-    sameSite: "none",
-    secure: false
-  },
-  resave: true
-})
+// kafka.getMessages();
 
-app.use(sessionMiddleWear);
-
-//cookie fixing middleware
-app.use((req, res, next) => 
+app.use((req, res, next) => {
   req.collection = collection;
   next();
 });
@@ -70,6 +57,9 @@ app.use(express.json());
 app.use('/images', express.static(path.join(__dirname, '/images')));
 app.use(cors({ credentials: true, origin: true }));
 
+app.use(session({
+  secret: 'nets2120_insecure', saveUninitialized: true, cookie: { httpOnly: false }, resave: true
+}));
 
 app.use('/users', userRouter);
 app.use('/posts', postsRouter);

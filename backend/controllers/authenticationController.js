@@ -278,7 +278,8 @@ exports.getUserId = async (req, res) => {
     return res.status(HTTP_STATUS.SUCCESS).json({ data: req.session.user_id });
   } else {
     return res.status(HTTP_STATUS.UNAUTHORIZED).json({ data: false });
-
+  }
+}
     
 exports.getResetLink = async (req, res) => {
   const username = req.query.username;

@@ -50,7 +50,7 @@ function Login() {
   ];
 
   return (
-    <div className="h-screen w-screen flex justify-center flex-col text-gray-700 w-96 rounded-xl bg-clip-border mx-auto">
+    <div className="h-screen w-screen flex justify-center flex-col text-gray-700 w-96 rounded-xl bg-clip-border mx-auto w-100">
       <div className="text-center text-2xl font-bold mb-4">
         Welcome to InstaLite
       </div>

@@ -189,7 +189,7 @@ function Signup() {
       body.linked_nconst = linked_nconst.slice(BACKEND_URL.length + "/images/".length, -4);
 
       const response = await axiosInstance.post(`${BACKEND_URL}/users/register`, body);
-      if (response.status === 201) {
+      if (response.status === 200) {
         console.log('Sign Up successful');
 
         // Log the user in

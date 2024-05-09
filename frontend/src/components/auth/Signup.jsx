@@ -12,7 +12,7 @@ const axiosInstance = axios.create({
 })
 
 function Signup() {
-  const [isFirstPage, setIsFirstPage] = useState(false);
+  const [isFirstPage, setIsFirstPage] = useState(true);
   const [profilePhoto, setProfilePhoto] = useState(null);
   const [matches, setMatches] = useState({});
   const [formData, setFormData] = useState({
@@ -192,7 +192,7 @@ function Signup() {
 
   if (isFirstPage) {
     return (
-      <div className="h-screen w-screen flex justify-center flex-col text-gray-700 w-96 rounded-xl bg-clip-border mx-auto">
+      <div className="h-screen w-screen flex justify-center flex-col text-gray-700 w-1/2 rounded-xl bg-clip-border mx-auto">
         <div className="text-center text-2xl font-bold mb-4">
           Create an Account
         </div>

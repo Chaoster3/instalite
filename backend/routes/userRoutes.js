@@ -14,6 +14,8 @@ router.route('/changePassword').put(authController.changePassword);
 router.route('/changeEmail').put(authController.changeEmail);
 router.route('/resetPassword').post(authController.resetPassword);
 router.route('/checkIfLoggedIn').get(authController.checkIfLoggedIn); // returns true if the user is logged in
+router.route('/getUserId').get(authController.getUserId); // returns true if the user is logged in
+
 
 // User routes
 // router.route('/getFiveClosestActors').get(userController.getClosest); // need to verify that it works

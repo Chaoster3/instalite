@@ -3,8 +3,9 @@ import io from 'socket.io-client'
 import { Avatar, Card, List, ListItem, ListItemSuffix } from "@material-tailwind/react"
 import { PencilSquareIcon } from "@heroicons/react/24/solid"
 import CreateNewChat from './CreateNewChat' 
+import axios from 'axios';
+import { BACKEND_URL } from "./utils/constants";
 
-const socket = io('http://localhost:3005')
 
 
 const messageComponent = ({ sender, message, avatar }) => {
@@ -31,8 +32,10 @@ const Chat = () => {
     const [chatName, setChatName] = useState("");
     const [editing, setEditing] = useState(false);
     const [showCreateNewChat, setShowCreateNewChat] = useState(false);
-    const [user, setUser] = useState("");
-    const user_id = 1;
+    const [user_id, setUser] = useState("");
+    const [socket, setSocket] = useState(null);
+
+
 
     const handleCreateNewChat = () => {
         setShowCreateNewChat(true); // Open the popup
@@ -46,6 +49,7 @@ const Chat = () => {
     const handleNameChange = (event) => {
         setChatName(event.target.value);
     };
+
 
     const submitNewName = () => {
         console.log("RENAMING", chatName);
@@ -61,40 +65,51 @@ const Chat = () => {
     };
 
     useEffect(() => {
+        console.log(`The user_id has changed to: ${user_id}`);
+    }, [user_id]);
+
+    useEffect(() => {
         const fetchUser = async () => {
+            console.log("GETTING USER ID");
           try {
-            const response = await axios.get(`${BACKEND_URL}/users/checkIfLoggedIn`);
+              const response = await axios.get(`${BACKEND_URL}/users/getUserId`);
             if (response.status === 200) {
-              setUser(response.data.data);
+                setUser(response.data.data.toString());
+
+
+                console.log(response.data.data);
+                const newSocket = io('http://localhost:3005', {
+                    query: { userId: response.data.data }
+                });
+                setSocket(newSocket);
+                setupSocketListeners(newSocket);
+                newSocket.emit('loadChats', { userId: response.data.data });
             } else {
-              setUser("");
-              navigate('/login');
+                setUser("");
             }
           } catch (error) {
             console.error("Error fetching user:", error);
-            setUser("");
-            navigate('/login');
+              setUser("");
           }
         }
     
         fetchUser();
-      }, []);
-
-    useEffect(() => {
-        socket.on('receiveInvite', ({ sessionId, inviterId }) => {
-            console.log(`Invited to join chat by user ${inviterId}`);
-            const accept = window.confirm(`Accept invitation to join?`);
-            socket.emit('respondToInvite', { sessionId, userId, accept });
-        });
 
         return () => {
-            socket.off('receiveInvite');
-            socket.off('respondToInvite');
+            if (socket) {
+                socket.disconnect();
+            }
         };
-    }, [socket]);
+      }, []);
 
+    const setupSocketListeners = (socket) => {
+        socket.on('receiveInvite', ({ sessionId, inviterId, usrId }) => {
+            const accept = window.confirm(`Accept invitation to join?`);
+            console.log(`Invitation response by ${usrId} : ${accept} and here is sess_id: ${sessionId} and inviter id is ${inviterId}`);
 
-    useEffect(() => {
+            socket.emit('respondToInvite', { sessionId: sessionId, userId: usrId, accept: accept });
+        });
+
         socket.on('chatRenamed', ({ chatID, newName }) => {
             if (messages.chatID === chatID) {
                 setChatName(newName);
@@ -107,22 +122,6 @@ const Chat = () => {
             }));
         });
 
-        return () => {
-            socket.off('chatRenamed');
-        };
-    }, [messages.chatID]);
-
-
-
-    useEffect(() => {
-        console.log('Chats updated:', chats);
-    }, [chats]);
-
-    useEffect(() => {
-
-        // socket.emit('loadChats', { userId: req.session.user_id });
-        socket.emit('loadChats', { userId: user_id });
-
         socket.on('historicalMessages', (newChats) => {
             console.log("in historical messages");
 
@@ -134,28 +133,34 @@ const Chat = () => {
         socket.on('newMessage', (newMessage) => {
             console.log("GOT NEW MESSAGE", newMessage);
             setChats((currentChats) => {
-                return currentChats.map((chat) => {
+                let updatedMessages = [];
+
+                const updatedChats = currentChats.map((chat) => {
                     if (chat.chatID === newMessage.chatID) {
-                        return { ...chat, messages: [...chat.messages, newMessage] };
+                        const updatedChat = { ...chat, messages: [...chat.messages, newMessage] };
+                        updatedMessages = updatedChat.messages;
+                        return updatedChat;
                     }
                     return chat;
                 });
+
+                setMessages({ messages: updatedMessages, chatID: newMessage.chatID });
+                return updatedChats;
             });
         });
 
         socket.on('chatLoaded', (chatInfo) => {
-            console.log("Received 'chatLoaded' event", chatInfo);
+            console.log("Received 'chatLoaded' event; id is ", chatInfo, chatInfo.chatID);
             setChats(currentChats => [
                 ...currentChats,
                 {
                     name: chatInfo.chatName || "New Chat",
                     chatID: chatInfo.chatID,
                     users: chatInfo.users,
-                    messages: chatInfo.messages || []  // Include existing messages or start with an empty array
+                    messages: chatInfo.messages || [] 
                 }
             ]);
-            // Set messages state if this chat is immediately active/viewed
-            setMessages({ messages: chatInfo.messages || [], chatID: chatInfo.sessionId });
+            setMessages({ messages: chatInfo.messages || [], chatID: chatInfo.chatID });
         });
 
         socket.on('leftChat', (data) => {
@@ -166,22 +171,13 @@ const Chat = () => {
             }
         });
 
+    };
 
-
-        return () => {
-            socket.off('historicalMessages');
-            socket.off('newMessage');
-            socket.off('joinRoom');
-            socket.off('chatLoaded');
-            socket.off('loadChats');
-            socket.off('leftChat');
-        };
-    }, []);
 
     const sendMessage = (chatID) => {
         if (message) {
             // socket.emit('chatMessage', { chatID, req.session.user_id, message });
-            console.log('Sending message:', message);
+            console.log('Sending message:', message, chatID);
             socket.emit('chatMessage', { chatID: chatID, userId: user_id, message: message });
             setMessage('');
         }
@@ -216,7 +212,10 @@ const Chat = () => {
                             <ListItem
                                 key={key}
                                 onClick={() => {
+                                    console.log(chat);
                                     setMessages({ messages: chat.messages, chatID: chat.chatID });
+                                    console.log(messages);
+
                                     setChatName(chat.name || "New Chat");
                                 }}
                             >

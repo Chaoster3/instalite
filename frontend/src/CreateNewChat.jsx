@@ -9,11 +9,11 @@ const CreateNewChat = ({ socket, userId, onClose, chatId }) => {
             return;
         }
 
-        socket.emit('createChat', { chatName: "New Chat", user_ids: [userId] });
+        console.log("SENDING UID", userId);
 
         socket.emit('sendInvite', {
             inviteeUsername: friendUsername,
-            session_id: -1,
+            sessionId: -1,
             inviterId: userId
         });
         setFriendUsername("");  // Reset input field

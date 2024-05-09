@@ -7,5 +7,6 @@ const upload = multer({ dest: '/image_uploads/' });
 router.route('/createPost').post(upload.single('image'), postsController.createPost);
 router.route('/getPost/:postId').get(postsController.getPost);
 router.route('/').get(postsController.getAllPosts);
+router.route('/trendingPosts').get(postsController.getTrendingPosts);
 
 module.exports = router;

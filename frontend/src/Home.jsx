@@ -3,6 +3,7 @@ import axios from "axios";
 import { BACKEND_URL } from "./utils/constants";
 import { useNavigate } from 'react-router-dom';
 import Post from "./Post";
+import TrendingPosts from "./TrendingPosts";
 
 axios.defaults.withCredentials = true
 
@@ -60,7 +61,10 @@ const Home = () => {
       <h1 className="text-3xl font-bold mb-6">Welcome, {user}!</h1>
       <div className="overflow-y-scroll max-h-screen">
         <div className="grid grid-cols-1 gap-6">
+          <TrendingPosts />
           {/* Render posts */}
+
+          <h1>Normal Posts</h1>
           {posts.map((post, index) => (
             <Post key={index} post={post} />
           ))}

@@ -52,7 +52,7 @@ function Login() {
   return (
     <div className="h-screen w-screen flex justify-center flex-col text-gray-700 w-96 rounded-xl bg-clip-border mx-auto">
       <div className="text-center text-2xl font-bold mb-4">
-        Welcome to Myelin Oligodendrocyte Glycoprotein
+        Welcome to InstaLite
       </div>
       <div className="flex flex-col gap-4 p-6">
         {inputFields.map((field, index) => (

@@ -14,25 +14,25 @@ axios.defaults.withCredentials = true;
 function App() {
   const [isSignedIn, setIsSignedIn] = useState(false);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await axios.get(`http://localhost:3000/users/checkIfLoggedIn`,);
-        if (response.status === 200) {
-          console.log("signed in")
-          setIsSignedIn(true);
-        } else {
-          console.log("not signed in")
-          setIsSignedIn(false);
-        }
-      } catch (error) {
-        console.error("Error fetching user status:", error);
-        setIsSignedIn(false);
-      }
-    };
+  // useEffect(() => {
+  //   const fetchData = async () => {
+  //     try {
+  //       const response = await axios.get(`http://localhost:3000/users/checkIfLoggedIn`,);
+  //       if (response.status === 200) {
+  //         console.log("signed in")
+  //         setIsSignedIn(true);
+  //       } else {
+  //         console.log("not signed in")
+  //         setIsSignedIn(false);
+  //       }
+  //     } catch (error) {
+  //       console.error("Error fetching user status:", error);
+  //       setIsSignedIn(false);
+  //     }
+  //   };
 
-    fetchData();
-  }, []);
+  //   fetchData();
+  // }, []);
 
   return (
     <Router>

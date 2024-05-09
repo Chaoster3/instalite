@@ -14,7 +14,7 @@ const axiosInstance = axios.create({
 function Signup() {
   const [isFirstPage, setIsFirstPage] = useState(false);
   const [profilePhoto, setProfilePhoto] = useState(null);
-  const [matches, setMatches] = useState(null);
+  const [matches, setMatches] = useState({});
   const [formData, setFormData] = useState({
     username: '',
     password: '',

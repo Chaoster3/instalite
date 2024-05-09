@@ -4,9 +4,7 @@ import App from './App.jsx'
 import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
     <div className="fixed inset-x-0 top-0">
       <App />
-    </div>
-  </React.StrictMode>,
+  </div>
 )

@@ -10,14 +10,34 @@ exports.joinRoom = async (userId, sessionId) => {
     await this.updateUserStatus(userId, sessionId, true);
 };
 
-exports.saveMessage = async (sessionId, userId, message) => {
-    const sql = `INSERT INTO chat_messages (session_id, sender_id, message) VALUES (?, ?, ?)`;
-    await db.insert_items(sql, [sessionId, userId, message]);
+exports.saveMessageAndGetAvatar = async (chatID, userId, message) => {
+    const sqlInsertMessage = `INSERT INTO chat_messages (session_id, sender_id, message) VALUES (?, ?, ?)`;
+    await db.insert_items(sqlInsertMessage, [chatID, userId, message]);
+
+    const sqlGetAvatar = `SELECT image_link FROM users WHERE user_id = ${userId}`;
+    const results = await db.send_sql(sqlGetAvatar);
+    if (results) {
+        return results[0].image_link;
+    }
+    return null;
 };
 
 exports.fetchMessagesForSession = async (sessionId) => {
-    const sql = `SELECT message FROM chat_messages WHERE session_id = ${sessionId} ORDER BY timestamp ASC`;
-    return db.send_sql(sql);
+    const sql = `
+        SELECT 
+            u.username AS sender,
+            cm.message AS message,
+            u.image_link AS avatar  
+        FROM chat_messages cm
+        JOIN users u ON cm.sender_id = u.user_id
+        WHERE cm.session_id = ${sessionId}
+        ORDER BY cm.timestamp ASC`;
+    const messages = await db.send_sql(sql);
+    return messages.map(msg => ({
+        sender: msg.sender,
+        message: msg.message,
+        avatar: msg.avatar || null  // Default avatar if none is found
+    }));
 };
 
 exports.leaveRoom = async (userId, sessionId) => {
@@ -134,8 +154,18 @@ exports.getUserIdByUsername = async (username) => {
     const sql = `SELECT user_id FROM users WHERE username = '${username}'`;
     const result = await db.send_sql(sql);
     console.log("GETTING ID", result);
-    if (result) {
+    if (result.length > 0) {
         return result[0].user_id;
+    } else {
+        return null;
+    }
+};
+
+exports.getUsernameById = async (user_id) => {
+    const sql = `SELECT username FROM users WHERE user_id = '${user_id}'`;
+    const result = await db.send_sql(sql);
+    if (result.length > 0) {
+        return result[0].username;
     } else {
         return null;
     }
@@ -148,4 +178,33 @@ exports.checkFriendship = async (userId1, userId2) => {
 
     console.log("GETTING FRIENDSHIP", result[0][`EXISTS (SELECT 1 FROM friends WHERE follower = ${userId1} AND followed = ${userId2})`] === 1);
     return result[0][`EXISTS (SELECT 1 FROM friends WHERE follower = ${userId1} AND followed = ${userId2})`] === 1;
+};
+
+exports.getUsername = async (userId) => {
+    const sql = 'SELECT username FROM users WHERE user_id = ' + userId;
+    try {
+        const results = await db.send_sql(sql);
+        if (results.length > 0) {
+            return results[0].username;
+        } else {
+            return null;
+        }
+    } catch (error) {
+        console.error('Failed to fetch username:', error);
+        throw error;
+    }
+};
+
+exports.getNameFromSessionId = async (sessionId) => {
+    try {
+        const sql = `SELECT session_name FROM chat_sessions WHERE session_id = ${sessionId}`;
+        const results = await db.send_sql(sql);
+        if (results.length > 0) {
+            return results[0].session_name;
+        }
+        return null; // Return null if no session is found
+    } catch (error) {
+        console.error('Failed to fetch session name:', error);
+        throw error;
+    }
 };

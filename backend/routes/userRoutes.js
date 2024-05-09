@@ -51,6 +51,7 @@ router.route('/getFriendRecommendation').get(userController.getFriendRecommendat
 router.route('/getFriendRequests').get(userController.getFriendRequests);
 router.route('/getCurrentUser').get(userController.getCurrentUser);
 
+router.route('/getSearch/:query').get(userController.getSearch);
 
 
 module.exports = router;

@@ -72,6 +72,7 @@ async function create_tables(db) {
       affiliation VARCHAR(255), \
       birthday DATE, \
       interests JSON, \
+      nconst_options JSON, \
       logged_in BOOLEAN DEFAULT FALSE, \
       rank_distribution JSON, \
       friend_recommendation JSON, \

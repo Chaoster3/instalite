@@ -6,72 +6,96 @@ const process = require('process');
 const path = require('path');
 const fs = require('fs');
 const HTTP_STATUS = require('../utils/httpStatus');
+const rag = require('../rag.js');
 const e = require('express');
 
 const db = dbsingleton;
 
-exports.register = async function (req, res) {
-  console.log(req.body);
-  const {
-    username,
-    password,
-    firstName,
-    lastName,
-    email,
-    affiliation,
-    birthday,
-    image_link,
-    linked_nconst,
-  } = req.body;
-  if (
-    username == null ||
-    password == null ||
-    firstName == null ||
-    lastName == null ||
-    email == null ||
-    affiliation == null ||
-    birthday == null ||
-    image_link == null ||
-    linked_nconst == null
-  ) {
-    return res.status(400).json({
-      error:
-        'One or more of the fields you entered was empty, please try again.',
-    });
-  }
-  try {
-    const existing = await db.send_sql(
-      `SELECT * FROM users WHERE username = '${username}'`
-    );
-    if (existing.length > 0) {
-      return res.status(409).json({
-        error:
-          'An account with this username already exists, please try again.',
-      });
-    }
-    const hashed = await new Promise((resolve, reject) => {
-      bcrypt.hash(password, 10, (err, hash) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(hash);
-        }
-      });
-    });
+exports.getTagId = async function (tag_name) {
+  const result = await db.send_sql(
+    `SELECT hashtag_id FROM hashtags WHERE name = ?`, [tag_name]
+  );
+  if (result.length > 0) {
+    return result[0].hashtag_id;
+  } else {
     await db.send_sql(
-      `INSERT INTO users (username, hashed_password, first_name, last_name, email, affiliation, birthday, image_link, linked_nconst) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [username, hashed, firstName, lastName, email, affiliation, birthday, image_link, linked_nconst]
+      `INSERT INTO hashtags (name, count) VALUES (?, 1)`, [tag_name]);
+    const num = await db.send_sql(
+      `SELECT hashtag_id FROM hashtags WHERE name = ?`, [tag_name]
     );
-    const found = await db.send_sql(
-      `SELECT user_id FROM users WHERE username = '${username}'`
-    );
-    req.session.user_id = found[0]['user_id'];
-    req.session.username = username;
-    return res.status(200).json({ username: username });
-  } catch (err) {
-    console.log(err);
-    return res.status(500).json({ error: 'Error querying database.' });
+    return num[0].hashtag_id;
   }
+}
+
+exports.register = async function (req, res) {
+    console.log(req.body);
+    const {
+        username,
+        password,
+        firstName,
+        lastName,
+        email,
+        affiliation,
+        birthday,
+        image_link,
+        linked_nconst,
+        interests,
+        nconst_options,
+    } = req.body;
+    if (
+        username == null ||
+        password == null ||
+        firstName == null ||
+        lastName == null ||
+        email == null ||
+        affiliation == null ||
+        birthday == null ||
+        image_link == null ||
+        linked_nconst == null ||
+      interests == null ||
+      nconst_options == null
+    ) {
+        console.log(username, password, firstName, lastName, email, affiliation, birthday, image_link, linked_nconst, interests, nconst_options);
+        return res.status(400).json({
+            error:
+                'One or more of the fields you entered was empty, please try again.',
+        });
+    }
+    try {
+        const existing = await db.send_sql(
+            `SELECT * FROM users WHERE username = '${username}'`
+        );
+        if (existing.length > 0) {
+            return res.status(409).json({
+                error:
+                    'An account with this username already exists, please try again.',
+            });
+        }
+        const hashed = await new Promise((resolve, reject) => {
+            bcrypt.hash(password, 10, (err, hash) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(hash);
+                }
+            });
+        });
+        const h_ids = interests.map(interest => exports.getTagId(interest));
+        const hashtag_ids = await Promise.all(h_ids);
+        await db.send_sql(
+            `INSERT INTO users (username, hashed_password, first_name, last_name, email, affiliation, birthday, image_link, linked_nconst, interests, nconst_options) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [username,hashed, firstName, lastName, email, affiliation, birthday, image_link, linked_nconst, JSON.stringify(hashtag_ids), JSON.stringify(nconst_options)]
+        );
+        const found = await db.send_sql(
+            `SELECT user_id FROM users WHERE username = '${username}'`
+        );
+        req.session.user_id = found[0]['user_id'];
+        req.session.username = username;
+        return res.status(200).json({ username: username });
+    } catch (err) {
+        console.log(err);
+        return res.status(500).json({ error: 'Error querying database.' });
+    }
 };
 
 exports.login = async (req, res) => {
@@ -281,51 +305,51 @@ exports.getClosest = async (req, res) => {
     return res.status(500).json({ error: 'Error querying database' });
   }
 
-  const file = req.file;
-  if (file == null) {
-    return res.status(400).json({ error: 'No image uploaded' });
-  }
-  fs.readFile(file.path, (err, data) => {
-    if (err) {
-      console.error('Error reading file:', err);
-      return res.status(500).send('Error uploading file');
-    } else {
-      console.log(file.path);
-      console.log(count);
-      const key = username + count[0]['count'];
-      const params = {
-        Bucket: process.env.S3_BUCKET_2,
-        Key: key,
-        Body: data
-      };
-      const responseData = {};
-      responseData.matches = [];
-      // Upload the file to S3
-      s3.upload(params, async (err, s3Data) => {
-        if (err) {
-          console.error('Error uploading to S3:', err);
-          return res.status(500).send('Error uploading file');
-        } else {
-          responseData.image_link = s3Data.Location;
-          try {
-            for (var item of await chroma.findTopKMatches(req.collection, file.path, 5)) {
-              for (var i = 0; i < item.ids[0].length; i++) {
-                console.log(item.documents[0][i].slice(0, -3));
-                const name = await db.send_sql(
-                  `SELECT primaryName FROM names WHERE nconst = '${item.documents[0][i].slice(0, -4)}'`
-                );
-                responseData['matches'].push({ name: name[0]['primaryName'], image: item.documents[0][i] });
-              }
-            }
-            return res.status(200).json(responseData);
-          } catch (err) {
-            console.log(err);
-            return res.status(500).json({ error: 'Error with ChromaDB' });
-          }
-        }
-      });
+    const file = req.file;
+    if (file == null) {
+        return res.status(400).json({ error: 'No image uploaded' });
     }
-  });
+    fs.readFile(file.path, (err, data) => {
+        if (err) {
+            console.error('Error reading file:', err);
+            return res.status(500).send('Error uploading file');
+        } else {
+            console.log(file.path);
+            console.log(count);
+            const key = username + count[0]['count'];
+            const params = {
+                Bucket: process.env.S3_BUCKET_1,
+                Key: key,
+                Body: data
+            };
+            const responseData = {};
+            responseData.matches = [];
+            // Upload the file to S3
+            s3.upload(params, async (err, s3Data) => {
+                if (err) {
+                    console.error('Error uploading to S3:', err);
+                    return res.status(500).send('Error uploading file');
+                } else {
+                    responseData.image_link = s3Data.Location;
+                    try {
+                        for (var item of await chroma.findTopKMatches(req.collection, file.path, 5)) {
+                            for (var i = 0; i < item.ids[0].length; i++) {
+                                console.log(item.documents[0][i].slice(0, -3));
+                                const name = await db.send_sql(
+                                    `SELECT primaryName FROM names WHERE nconst = '${item.documents[0][i].slice(0, -4)}'`
+                                );
+                                responseData['matches'].push({name: name[0]['primaryName'], image: item.documents[0][i]});
+                            }
+                        }
+                        return res.status(200).json(responseData);
+                    } catch (err) {
+                        console.log(err);
+                        return res.status(500).json({ error: 'Error with ChromaDB' });
+                    }
+                }
+            });
+        }
+    });
 };
 
 exports.getAllFriends = async (req, res) => {
@@ -1082,5 +1106,28 @@ exports.get5ClosestActor = async (req, res) => {
     return res
       .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
       .json({ error: 'Error querying database.' });
+  }
+}
+
+exports.getSearch = async (req, res) => {
+  const { user_id } = req.session;
+  const { query } = req.params;
+
+  if (user_id == null) {
+    return res
+      .status(HTTP_STATUS.UNAUTHORIZED)
+      .json({ error: 'You must be logged in to make a search.' });
+  }
+
+  try {
+    const response = await rag.rag(query);
+    return res
+      .status(HTTP_STATUS.SUCCESS)
+      .json({ response });
+  } catch (err) {
+    console.log(err);
+    return res
+      .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+      .json({ error: 'Error making search.' });
   }
 }

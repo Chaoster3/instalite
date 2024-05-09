@@ -13,7 +13,7 @@ const CreateNewChat = ({ socket, userId, onClose, chatId }) => {
 
         socket.emit('sendInvite', {
             inviteeUsername: friendUsername,
-            sessionId: -1,
+            sessionId: chatId,
             inviterId: userId
         });
         setFriendUsername("");  // Reset input field
@@ -28,7 +28,7 @@ const CreateNewChat = ({ socket, userId, onClose, chatId }) => {
                 value={friendUsername}
                 onChange={(e) => setFriendUsername(e.target.value)}
             />
-            <button onClick={handleCreateChat}>Create Chat</button>
+            <button onClick={handleCreateChat}>Create</button>
             <button onClick={onClose}>Cancel</button>
 
         </div>

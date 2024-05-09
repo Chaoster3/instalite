@@ -67,7 +67,7 @@ export function NavbarWithSearch() {
           </List>
         </div>
         <div className="flex flex-col w-full">
-          <div className="pt-10">{page}</div>
+          <div className="">{page}</div>
         </div>
       </div>
     </>

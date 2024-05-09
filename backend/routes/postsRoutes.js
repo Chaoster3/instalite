@@ -8,7 +8,7 @@ router.route('/createPost').post(upload.single('image'), postsController.createP
 router.route('/getPost/:postId').get(postsController.getPost);
 router.route('/').get(postsController.getAllPosts);
 
-router.route('/getSearch/:query').get(userController.getSearch);
+router.route('/getSearch/:query').get(postsController.getSearch);
 
 
 module.exports = router;

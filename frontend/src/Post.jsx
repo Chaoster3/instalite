@@ -4,6 +4,7 @@ import axios from "axios";
 import HashTagsSelector from "./HashTagsSelector";
 
 const Post = ({ post }) => {
+  console.log(post);
   const [likedPost, setLikedPost] = useState(false);
   const [existingComments, setExistingComments] = useState([]);
   const [commentText, setCommentText] = useState("");
@@ -93,7 +94,7 @@ const Post = ({ post }) => {
         {post.image_url && (
           <img src={post.image_url}/>
         )}
-        {post.hashtag_names.length > 0 && (
+        {post.hashtag_names && post.hashtag_names.length > 0 && (
           <p className="text-gray-600 mb-2">Hashtags: {post.hashtag_names.join(', ')}</p>
         )}
         <button className={`text-sm font-semibold py-1 px-3 ${likedPost ? 'bg-red-500' : 'bg-blue-500'} text-white rounded-md hover:bg-opacity-75`} onClick={() => likedPost ? handleUnlikePost(post.post_id) : handleLikePost(post.post_id)}>

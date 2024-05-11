@@ -135,7 +135,7 @@ const CreatePosts = () => {
               onChange={handleSearchInputChange}
               className="w-2/3 px-4 py-2 mr-2 border border-gray-300 rounded-md"
             />
-            <button type="button" onClick={finalizeTag} className="px-4 py-2 text-white bg-blue-500 rounded-md">Search</button>
+            <button type="button" onClick={finalizeTag} className="px-4 py-2 text-white bg-blue-500 rounded-md">Add</button>
           </div>
           <div className="flex flex-wrap mb-4">
             {searchResults.map((tag) => (

@@ -9,6 +9,7 @@ router.route('/getPost/:postId').get(postsController.getPost);
 router.route('/').get(postsController.getAllPosts);
 
 router.route('/getSearch/:query').get(postsController.getSearch);
+router.route('/trendingPosts').get(postsController.getTrendingPosts);
 
 
 module.exports = router;

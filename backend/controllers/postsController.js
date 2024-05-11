@@ -107,7 +107,7 @@ exports.getPost = async (req, res) => {
 
   try {
     const post = await db.send_sql(
-      `SELECT * FROM posts WHERE post_id = ${postId}`
+      `SELECT * FROM posts WHERE post_id = '${postId}'`
     );
     if (post.length === 0) {
       return res
@@ -126,6 +126,37 @@ exports.getPost = async (req, res) => {
 exports.getAllPosts = async (req, res) => {
   try {
     const posts = await db.send_sql(`SELECT * FROM posts`);
+    return res.status(HTTP_STATUS.SUCCESS).json(posts);
+  } catch (err) {
+    console.log(err);
+    return res
+      .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+      .json({ error: 'Error querying database.' });
+  }
+}
+
+exports.getTrendingPosts = async (req, res) => {
+  try {
+    const posts = await db.send_sql(`
+      SELECT *,
+            (LENGTH(user_ids_who_liked) - LENGTH(REPLACE(user_ids_who_liked, ',', '')) + 1) AS like_count
+      FROM posts
+      ORDER BY like_count DESC
+      LIMIT 5;
+    `);
+
+    // Convert each post's hashtag_ids into hashtag_names
+    for (let i = 0; i < posts.length; i++) {
+      posts[i].hashtag_names = [];
+      const hashtag_ids = JSON.parse(posts[i].hashtag_ids);
+      for (let j = 0; j < hashtag_ids.length; j++) {
+        const hashtag = await db.send_sql(
+          `SELECT * FROM hashtags WHERE hashtag_id = ${hashtag_ids[j]}`
+        );
+        posts[i].hashtag_names.push(hashtag[0].name);
+      }
+    }
+
     return res.status(HTTP_STATUS.SUCCESS).json(posts);
   } catch (err) {
     console.log(err);

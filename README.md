@@ -21,7 +21,6 @@ Extra credit:
 -WebSockets for chat: WebSockets is used for chat, as explained above  
 -LLM search results: Rather than returning links to posts, the search feature directly returns the found posts (which can be interacted with by the user)  
 -Dynamic search: When selecting interests, options for interests that have previously been entered by users show up dynamically based on what is being typed  
--Light mode/dark mode: Light and dark mode for the application can be toggled  
 
 Source files  
 -All files in /frontend/src except utils folder and assets folder  

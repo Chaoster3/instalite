@@ -160,8 +160,6 @@ public class FriendsOfFriendsSpark {
             // Collect the results to the driver node
             List<Tuple2<String, Map<String, Double>>> userDistList = userDistributions.collect();
             List<Tuple2<String, Map<String, Double>>> friendRecList = friendRecommendations.collect();
-            System.out.println(userDistList);
-            System.out.println(friendRecList);
 
             // Open a single connection
             try (Connection connection = DriverManager.getConnection(Config.DATABASE_CONNECTION,
@@ -170,6 +168,7 @@ public class FriendsOfFriendsSpark {
                 String userDistQuery = "UPDATE users SET rank_distribution = ? WHERE user_id = ?";
                 try (PreparedStatement userDistStmt = connection.prepareStatement(userDistQuery)) {
                     for (Tuple2<String, Map<String, Double>> tuple : userDistList) {
+                        if(tuple._1.equals("-1")) continue;
                         userDistStmt.setString(1, mapper.writeValueAsString(tuple._2));
                         userDistStmt.setString(2, tuple._1);
                         userDistStmt.addBatch();
@@ -181,6 +180,7 @@ public class FriendsOfFriendsSpark {
                 String friendRecQuery = "UPDATE users SET friend_recommendation = ? WHERE user_id = ?";
                 try (PreparedStatement friendRecStmt = connection.prepareStatement(friendRecQuery)) {
                     for (Tuple2<String, Map<String, Double>> tuple : friendRecList) {
+                        if(tuple._1.equals("-1")) continue;
                         friendRecStmt.setString(1, mapper.writeValueAsString(tuple._2));
                         friendRecStmt.setString(2, tuple._1);
                         friendRecStmt.addBatch();
@@ -255,7 +255,7 @@ public class FriendsOfFriendsSpark {
                 }
             }
             if (likes != null && !likes.isEmpty() && !likes.equals("[]")) {
-                for (String like : likes.substring(1, likes.length() - 1).split(",")) {
+                for (String like : likes.split(",")) {
                     edges.add(new Tuple2<>("user" + like, post_id_str));
                     edges.add(new Tuple2<>(post_id_str, "user" + like));
                 }

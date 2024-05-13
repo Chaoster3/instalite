@@ -17,7 +17,7 @@ const db = dbsingleton;
 
 async function rag(query) {
     try {
-        const posts = await db.send_sql("SELECT post_id, content FROM posts");
+        const posts = await db.send_sql("SELECT post_id, content FROM posts where post_id < 50");
 
         // Convert fetched data into Langchain document objects
         const documents = posts.map((post) => (

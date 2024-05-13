@@ -39,7 +39,6 @@ const Post = ({ post }) => {
     const checkIfLikedPost = async () => {
       try {
         const response = await axios.get(`${BACKEND_URL}/users/checkIfLikedPost/${post.post_id}`, { withCredentials: true });
-        console.log(post.image_url);
         setLikedPost(response.status === 200);
       } catch (error) {
         console.error('Error fetching liked posts:', error);
@@ -90,7 +89,7 @@ const Post = ({ post }) => {
     <div className="border rounded-md p-4 mb-4 shadow-md bg-white">
       <div>
         <p className="text-gray-600 mb-2 text-left"> {post.username}</p>
-        <p className="mb-4">Content: <span className="whitespace-pre-line">{post.content} </span></p>
+        <p className="mb-4"> <span className="whitespace-pre-line">{post.content} </span></p>
         {post.image_url && (
           <img src={post.image_url}/>
         )}

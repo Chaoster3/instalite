@@ -14,9 +14,9 @@ const kafka = require('./kafka.js')
 
 let collection;
 
-// chroma.startChroma().then(col => collection = col);
+chroma.startChroma().then(col => collection = col);
 
-// kafka.getMessages();
+kafka.getMessages();
 
 app.use((req, res, next) => {
   req.collection = collection;

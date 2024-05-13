@@ -426,21 +426,21 @@ exports.getPostsMainPage = async (req, res) => {
   }
 
   try {
-    const yourPosts = await db.send_sql(
-      `SELECT users.username AS username, posts.content AS content, posts.post_id AS post_id, posts.hashtag_ids AS hashtag_ids, posts.image_url AS image_url
-       FROM posts
-        JOIN users ON posts.author_id = users.user_id
-      WHERE posts.author_id = '${user_id}'`
+    let post_recommendations = await db.send_sql(
+      `SELECT rank_distribution AS rank_distribution FROM users WHERE user_id = '${user_id}'`
     );
-
-    const friendsPosts = await db.send_sql(
-      `SELECT users.username AS username, posts.content AS content, posts.post_id AS post_id, posts.hashtag_ids AS hashtag_ids, posts.image_url AS image_url
-      FROM posts
-        JOIN users ON posts.author_id = users.user_id
-      WHERE author_id IN (SELECT followed from friends WHERE follower = '${user_id}')`
-    );
-
-    const posts = yourPosts.concat(friendsPosts);
+    post_recommendations = JSON.parse(post_recommendations[0].rank_distribution);
+    const sorted_post_recommendations = Object.keys(post_recommendations).sort(function (a, b) { return post_recommendations[b] - post_recommendations[a] });
+    const posts = [];
+    for (let i = 0; i < sorted_post_recommendations.length; i++) {
+      const post = await db.send_sql(
+        `SELECT users.username AS username, posts.content AS content, posts.post_id AS post_id, posts.hashtag_ids AS hashtag_ids, posts.image_url AS image_url
+          FROM posts
+          JOIN users ON posts.author_id = users.user_id
+          WHERE posts.post_id = '${sorted_post_recommendations[i]}'`
+      );
+      posts.push(post[0]);
+    }
 
     // Convert each post's hashtag_ids into hashtag_names
     for (let i = 0; i < posts.length; i++) {

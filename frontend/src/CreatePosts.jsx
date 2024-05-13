@@ -21,6 +21,7 @@ const CreatePosts = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    console.log(name, value);
     setForm((prevForm) => ({
       ...prevForm,
       [name]: value,
@@ -28,7 +29,8 @@ const CreatePosts = () => {
   };
 
   const handleImageInput = (e) => {
-    setImage(e.target.file);
+    console.log(e.target.files);
+    setImage(e.target.files[0]);
   };
 
   const handleSubmit = async (e) => {
@@ -38,6 +40,7 @@ const CreatePosts = () => {
       body.append("image", image);
       body.append("content", form.content);
       body.append("hashtag_names", form.hashtag_names);
+      console.log(image);
       const response = await axiosInstance.post(
         `${BACKEND_URL}/posts/createPost`,
         body
@@ -122,9 +125,7 @@ const CreatePosts = () => {
             <input
               type="file"
               placeholder=""
-              value={image}
               onChange={handleImageInput}
-              className=""
             />
           </div>
           <div className="flex items-center justify-between mb-4">

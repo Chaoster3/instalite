@@ -10,20 +10,22 @@ import { BACKEND_URL } from "./utils/constants";
 import { PlusIcon } from "@heroicons/react/24/solid";
 
 
-
 const messageComponent = ({ sender, message, avatar, username }) => {
+    sender = sender.toLowerCase();
+    username = username.toLowerCase();
     return (
         <div
             className={`w-full p-5 flex flex-row ${sender === username && "justify-end"
                 } space-x-3`}
         >
+            {sender !== username && <Avatar src={avatar} color="light-blue" size="lg" className="h-8 w-8" />}
             <div
                 className={`text-left max-w-[70%] p-3 rounded-md break-words ${sender === username ? "bg-blue-100" : "bg-gray-200"
                     }`}
             >
                 {message}
             </div>
-            <Avatar src={avatar} color="light-blue" size="lg" className="h-8 w-8" />
+            {sender === username && <Avatar src={avatar} color="light-blue" size="lg" className="h-8 w-8" />}
         </div>
     );
 };

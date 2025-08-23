@@ -1,41 +1,45 @@
-Team Myelin Oligodendrocyte Glycoprotein (g30)
+# Pennstagram
 
-Sam Ngiam (sngiam@seas.upenn.edu), Matthew Kuo (mkuo@seas.upenn.edu), Ethan Yu (ethanyu@seas.upenn.edu), Amish Sethi (asethi04@seas.upenn.edu)
+Pennstagram is a social media platform designed to connect users through posts, comments, and real-time chat.
 
-Features Implemented:
+## Features
 
--Profile creation and user log in  
--Profile editing  
--Posting, commenting, and liking  
--Feed and friend recommendations  
--Recieving posts and tweets from other applications, and producing Federated Posts  
--Chats with other users  
--Searching for posts  
+### Core Features
+- **User Authentication**: Secure registration and login with session management.
+- **Profile Management**: Create and edit user profiles.
+- **Content Sharing**: Post, comment, and like content.
+- **Feed and Recommendations**: Personalized feed and friend recommendations.
+- **Federated Posts**: Integration with external applications for post sharing.
+- **Real-time Chat**: WebSocket-based chat for instant messaging.
+- **Search**: Dynamic search for posts and interests.
 
-Extra credit:
+### Other Features
+- **Friend Requests**: Send, accept, or decline friend requests.
+- **Password Recovery**: "Forgot password" feature with email token for password reset.
+- **Infinite Scrolling**: Continuous scrolling on the home feed.
+- **Trending Posts**: Site-wide display of top trending posts.
+- **LLM Search Results**: Direct interaction with search results.
+- **Dynamic Interest Suggestions**: Real-time suggestions for user interests.
 
--Friend requests: As explained above, users can send friend requests, and accept or decline incoming friend requests  
--”Forgot password”:  Users can submit their username on a forgot password page. They will then be emailed a link containing a generated token sends them to a page where they can reset their password  
--Infinite scrolling: Users can continuously scroll on their home feed to see more posts  
--Site-wite “what’s trending”: Top posts are displayed site wide  
--WebSockets for chat: WebSockets is used for chat, as explained above  
--LLM search results: Rather than returning links to posts, the search feature directly returns the found posts (which can be interacted with by the user)  
--Dynamic search: When selecting interests, options for interests that have previously been entered by users show up dynamically based on what is being typed  
+## Technology Stack
 
-Source files  
--All files in /frontend/src except utils folder and assets folder  
--All files in /backend/access  
--All files in /backend/controllers  
--All files in /backend/chat  
--All files in /backend/java/edu/upenn/cis/nets2120  
--/jobs/src/main/java/edu/upenn/cis/nets2120/hw3/FriendOfFriendsSpark  
--All files in backend/routes  
--/backend/kafka.js  
--/backend/rag.js  
--/backend/server.js  
+- **Backend**: Node.js, Express.js, AWS S3, Kafka, ChromaDB, Socket.io
+- **Frontend**: React, Tailwind CSS
+- **Database**: MySQL database in AWS RDS, with EC2 for SSH tunneling
 
-All code submitted was written by us. 
+## Source Files
 
-Instructions for running project:
+- **Frontend**: All files in `/frontend/src` except `utils` and `assets` folders.
+- **Backend**: 
+  - Access Layer: `/backend/access`
+  - Controllers: `/backend/controllers`
+  - Chat: `/backend/chat`
+  - Java Components: `/backend/java/edu/upenn/cis/nets2120`
+  - Routes: `/backend/routes`
+  - Additional files: `/backend/kafka.js`, `/backend/rag.js`, `/backend/server.js`
+- **Jobs**: `/jobs/src/main/java/edu/upenn/cis/nets2120/hw3/FriendOfFriendsSpark`
 
-Please find instructions here: https://docs.google.com/document/d/1B52ENyDP7s83Ol720d1F9sDJc5rxsPBhvCvX5Ikj77s/edit?usp=sharing 
+## Running the Project
+
+For detailed instructions on setting up and running the project, please refer to the [setup guide](https://docs.google.com/document/d/1B52ENyDP7s83Ol720d1F9sDJc5rxsPBhvCvX5Ikj77s/edit?usp=sharing).
+

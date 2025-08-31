@@ -1,6 +1,6 @@
-# Pennstagram
+# Instalite
 
-Pennstagram is a social media platform designed to connect users through posts, comments, and real-time chat.
+Instalite is a social media platform designed to connect users through posts, comments, and real-time chat.
 
 ## Features
 
